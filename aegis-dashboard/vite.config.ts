@@ -8,6 +8,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  // sockjs-client is a Node.js library that references `global`.
+  // This polyfills it so it works in the browser environment.
+  define: {
+    global: 'globalThis',
+  },
   server: {
     port: 5173,
     proxy: {

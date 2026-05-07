@@ -1,13 +1,20 @@
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import type { WsAlertMessage } from '../types';
 import { useAlertStore } from '../store/alertStore';
 
 let stompClient: Client | null = null;
 
+// Build the WebSocket URL dynamically so it works on any host/port
+function getWsUrl(): string {
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const host = window.location.host; // includes port if non-default
+  return `${proto}://${host}/ws/admin/websocket`;
+}
+
 export function connectWebSocket(token: string) {
   stompClient = new Client({
-    webSocketFactory: () => new SockJS('/ws/admin'),
+    // @stomp/stompjs v7 supports native WebSocket – no SockJS needed
+    brokerURL: getWsUrl(),
     connectHeaders: { Authorization: `Bearer ${token}` },
     reconnectDelay: 5000,
     onConnect: () => {
