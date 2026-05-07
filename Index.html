@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aegis HIDS — Architecture & Design Document</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #080c10;
+  --surface: #0e1419;
+  --surface2: #141c24;
+  --surface3: #1a2535;
+  --border: #1e2d3d;
+  --border2: #253545;
+  --text: #cdd6f4;
+  --muted: #545f70;
+  --dim: #89939e;
+  --accent: #00d4ff;
+  --accent2: #0099cc;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --orange: #fab387;
+  --purple: #cba6f7;
+  --blue: #89b4fa;
+  --teal: #94e2d5;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* Layout */
+.layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 24px 0;
+}
+
+.sidebar-logo {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sidebar-logo .name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.sidebar-logo .sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.nav-group { margin-bottom: 6px; }
+
+.nav-group-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 20px 4px;
+}
+
+.nav-link {
+  display: block;
+  padding: 6px 20px;
+  font-size: 12px;
+  color: var(--dim);
+  text-decoration: none;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: var(--surface2);
+  border-left-color: var(--accent);
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  overflow-x: hidden;
+  max-width: calc(100vw - 240px);
+}
+
+.hero {
+  background: linear-gradient(135deg, var(--surface) 0%, #0a1628 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 64px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-badge::before {
+  content: '';
+  width: 20px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.hero-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.hero-title span { color: var(--accent); }
+
+.hero-sub {
+  font-size: 14px;
+  color: var(--dim);
+  max-width: 560px;
+  margin-bottom: 28px;
+}
+
+.meta-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.meta-item span { color: var(--dim); }
+
+/* Content sections */
+.content { padding: 48px 64px; }
+
+section { margin-bottom: 56px; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  min-width: 32px;
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+h3::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+p { color: var(--dim); margin-bottom: 12px; font-size: 13.5px; }
+
+/* Cards */
+.card-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.cols2 { grid-template-columns: 1fr 1fr; }
+.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 2px;
+}
+
+.card-accent-blue { border-top: 2px solid var(--blue); }
+.card-accent-green { border-top: 2px solid var(--green); }
+.card-accent-yellow { border-top: 2px solid var(--yellow); }
+.card-accent-red { border-top: 2px solid var(--red); }
+.card-accent-purple { border-top: 2px solid var(--purple); }
+.card-accent-teal { border-top: 2px solid var(--teal); }
+
+.card-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.card-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.card-body { font-size: 12px; color: var(--dim); line-height: 1.6; }
+
+/* Architecture flow */
+.arch-flow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px 32px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.arch-node {
+  text-align: center;
+  min-width: 120px;
+}
+
+.arch-node-box {
+  padding: 12px 16px;
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.arch-node-sub { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+.arch-arrow {
+  flex: 1;
+  min-width: 40px;
+  text-align: center;
+  position: relative;
+}
+
+.arch-arrow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: var(--border2);
+  transform: translateY(-50%);
+}
+
+.arch-arrow-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  position: relative;
+  background: var(--surface);
+  padding: 0 4px;
+}
+
+.node-android { background: rgba(137,180,250,0.12); color: var(--blue); border: 1px solid rgba(137,180,250,0.3); }
+.node-pc { background: rgba(166,227,161,0.12); color: var(--green); border: 1px solid rgba(166,227,161,0.3); }
+.node-api { background: rgba(249,226,175,0.12); color: var(--yellow); border: 1px solid rgba(249,226,175,0.3); }
+.node-queue { background: rgba(250,179,135,0.12); color: var(--orange); border: 1px solid rgba(250,179,135,0.3); }
+.node-engine { background: rgba(203,166,247,0.12); color: var(--purple); border: 1px solid rgba(203,166,247,0.3); }
+.node-db { background: rgba(148,226,213,0.12); color: var(--teal); border: 1px solid rgba(148,226,213,0.3); }
+.node-dash { background: rgba(243,139,168,0.12); color: var(--red); border: 1px solid rgba(243,139,168,0.3); }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-bottom: 24px;
+}
+
+th {
+  background: var(--surface2);
+  padding: 10px 14px;
+  text-align: left;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--dim);
+  vertical-align: top;
+}
+
+tr:hover td { background: var(--surface2); }
+
+/* Code blocks */
+pre {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 20px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--dim);
+}
+
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--surface2);
+  padding: 2px 6px;
+  border-radius: 2px;
+  color: var(--accent);
+}
+
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+
+.kw { color: var(--purple); }
+.str { color: var(--green); }
+.num { color: var(--yellow); }
+.cmt { color: var(--muted); }
+.key { color: var(--blue); }
+.val { color: var(--orange); }
+.method-get { color: var(--green); font-weight: 600; }
+.method-post { color: var(--yellow); font-weight: 600; }
+.method-put { color: var(--orange); font-weight: 600; }
+.method-delete { color: var(--red); font-weight: 600; }
+.method-ws { color: var(--purple); font-weight: 600; }
+
+/* Tags */
+.tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  margin: 2px;
+}
+
+.tag-blue { background: rgba(137,180,250,0.12); color: var(--blue); border: 1px solid rgba(137,180,250,0.25); }
+.tag-green { background: rgba(166,227,161,0.12); color: var(--green); border: 1px solid rgba(166,227,161,0.25); }
+.tag-yellow { background: rgba(249,226,175,0.12); color: var(--yellow); border: 1px solid rgba(249,226,175,0.25); }
+.tag-red { background: rgba(243,139,168,0.12); color: var(--red); border: 1px solid rgba(243,139,168,0.25); }
+.tag-purple { background: rgba(203,166,247,0.12); color: var(--purple); border: 1px solid rgba(203,166,247,0.25); }
+.tag-orange { background: rgba(250,179,135,0.12); color: var(--orange); border: 1px solid rgba(250,179,135,0.25); }
+
+/* Badges */
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.badge-required { background: rgba(243,139,168,0.15); color: var(--red); }
+.badge-optional { background: rgba(166,227,161,0.15); color: var(--green); }
+.badge-admin { background: rgba(203,166,247,0.15); color: var(--purple); }
+.badge-agent { background: rgba(137,180,250,0.15); color: var(--blue); }
+
+/* Callout */
+.callout {
+  background: var(--surface2);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.callout.warn { border-left-color: var(--yellow); }
+.callout.danger { border-left-color: var(--red); }
+.callout.success { border-left-color: var(--green); }
+
+/* List */
+ul.doc-list { list-style: none; padding: 0; }
+ul.doc-list li {
+  font-size: 13px;
+  color: var(--dim);
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+}
+ul.doc-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+}
+
+/* Timeline */
+.timeline { display: flex; gap: 0; margin-bottom: 24px; }
+.tl-item { flex: 1; padding: 16px; border: 1px solid var(--border); border-right: none; background: var(--surface); }
+.tl-item:last-child { border-right: 1px solid var(--border); }
+.tl-phase { font-family: 'JetBrains Mono', monospace; font-size: 10px; margin-bottom: 4px; }
+.tl-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.tl-weeks { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+
+/* DB schema */
+.schema-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.schema-header {
+  background: var(--surface2);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schema-field {
+  display: grid;
+  grid-template-columns: 180px 140px 80px 1fr;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  align-items: center;
+}
+
+.schema-field:last-child { border-bottom: none; }
+.field-name { color: var(--blue); }
+.field-type { color: var(--purple); }
+.field-constraint { color: var(--yellow); font-size: 10px; }
+.field-desc { color: var(--muted); font-family: 'Syne', sans-serif; font-size: 12px; }
+
+/* Endpoint block */
+.endpoint {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.endpoint-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+.endpoint-header:hover { background: var(--surface2); }
+
+.endpoint-path {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+}
+
+.endpoint-body {
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  background: var(--surface2);
+  display: none;
+}
+
+.endpoint.open .endpoint-body { display: block; }
+.endpoint.open .endpoint-header { background: var(--surface2); }
+
+.ep-section { margin-bottom: 14px; }
+.ep-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.param-row {
+  display: grid;
+  grid-template-columns: 160px 100px 1fr;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+
+.param-row:last-child { border-bottom: none; }
+.param-name { color: var(--blue); }
+.param-type { color: var(--purple); }
+.param-desc { color: var(--muted); font-family: 'Syne', sans-serif; font-size: 11.5px; }
+
+/* RabbitMQ */
+.queue-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  margin-bottom: 8px;
+}
+
+.queue-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--orange);
+  margin-bottom: 6px;
+}
+
+.queue-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.queue-meta-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.queue-meta-item span { color: var(--dim); }
+
+/* Docker services */
+.docker-service {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.service-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  min-width: 160px;
+}
+
+.service-details { flex: 1; }
+.service-detail-row { font-size: 12px; color: var(--dim); margin-bottom: 2px; }
+
+/* Phase cards */
+.phase-card {
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.phase-header-bar {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.phase-body { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface2); }
+
+.phase-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.phase-title { font-size: 14px; font-weight: 600; }
+.phase-weeks { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-left: auto; }
+
+@media print {
+  .sidebar { display: none; }
+  .main { max-width: 100%; }
+  .content { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="name">Aegis</div>
+    <div class="sub">HIDS · Architecture Doc v1.0</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Overview</div>
+    <a href="#overview" class="nav-link">System Overview</a>
+    <a href="#architecture" class="nav-link">Architecture Flow</a>
+    <a href="#stack" class="nav-link">Tech Stack</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Agents</div>
+    <a href="#android-agent" class="nav-link">Android Agent</a>
+    <a href="#pc-agent" class="nav-link">PC Agent</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Backend</div>
+    <a href="#backend" class="nav-link">Spring Boot Server</a>
+    <a href="#database" class="nav-link">Database Schema</a>
+    <a href="#endpoints" class="nav-link">API Endpoints</a>
+    <a href="#rabbitmq" class="nav-link">RabbitMQ Queues</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Frontend</div>
+    <a href="#dashboard" class="nav-link">Admin Dashboard</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Infra</div>
+    <a href="#devops" class="nav-link">DevOps & Docker</a>
+    <a href="#security" class="nav-link">Security Design</a>
+    <a href="#privacy" class="nav-link">Privacy Design</a>
+    <a href="#phases" class="nav-link">Build Phases</a>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+<div class="hero">
+  <div class="hero-badge">Architecture & Design Document</div>
+  <div class="hero-title"><span>Aegis</span> HIDS</div>
+  <div class="hero-sub">Host-based Intrusion Detection System — Walchand College of Engineering, Sangli. Android agent + PC agent + Spring Boot backend + React admin dashboard.</div>
+  <div class="meta-row">
+    <div class="meta-item">College <span>WCE Sangli</span></div>
+    <div class="meta-item">Stack <span>Kotlin · Java 17 · Spring Boot 3 · React 18</span></div>
+    <div class="meta-item">Timeline <span>16 weeks · 5 phases</span></div>
+    <div class="meta-item">Version <span>1.0</span></div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- 1. OVERVIEW -->
+<section id="overview">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <h2>System Overview</h2>
+  </div>
+
+  <p>Aegis is a multi-layer Host-based Intrusion Detection System designed to monitor student and lab devices on WCE's campus network. It addresses the security gap between Sophos firewall (network perimeter) and device-level behavior. Sophos sees traffic; Aegis sees what generates it.</p>
+
+  <div class="callout">
+    <strong>Core problem:</strong> WCE ERP is protected by CAPTCHA only. Result portal uses OTP (interceptable). Sophos firewall is perimeter-only — blind to compromised devices on the LAN. Aegis adds endpoint visibility.
+  </div>
+
+  <div class="card-grid cols4" style="margin-top: 20px;">
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Layer 1</div>
+      <div class="card-title">Android Agent</div>
+      <div class="card-body">Kotlin app on student phones. Evil twin detection, security score, ERP gated access, Sophos auto-login, threat reporting.</div>
+    </div>
+    <div class="card card-accent-green">
+      <div class="card-label" style="color: var(--green);">Layer 2</div>
+      <div class="card-title">PC Agent</div>
+      <div class="card-body">Java 17 daemon on lab computers. File integrity monitoring, process monitoring, network traffic scanning.</div>
+    </div>
+    <div class="card card-accent-yellow">
+      <div class="card-label" style="color: var(--yellow);">Layer 3</div>
+      <div class="card-title">Backend Server</div>
+      <div class="card-body">Spring Boot 3 + RabbitMQ. Ingests telemetry, scores devices, fires alerts, pushes to dashboard via WebSocket.</div>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-label" style="color: var(--red);">Layer 4</div>
+      <div class="card-title">Admin Dashboard</div>
+      <div class="card-body">React 18 + TypeScript. Live threat map, device health board, alert feed, analytics, policy manager.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. ARCHITECTURE -->
+<section id="architecture">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <h2>Architecture Flow</h2>
+  </div>
+
+  <div class="arch-flow">
+    <div class="arch-node">
+      <div class="arch-node-box node-android">Android Agent</div>
+      <div class="arch-node-sub">Kotlin · WorkManager<br>Room · Keystore</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">HTTPS/JSON</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-pc">PC Agent</div>
+      <div class="arch-node-sub">Java 17 · JNA<br>WatchService</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">HTTPS/JSON</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-api">Spring Boot API</div>
+      <div class="arch-node-sub">REST · JWT<br>Spring Security</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">AMQP</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-queue">RabbitMQ</div>
+      <div class="arch-node-sub">3 queues<br>dead-letter</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">consumer</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-engine">Analysis Engine</div>
+      <div class="arch-node-sub">Rule engine<br>Score processor</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">WebSocket</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-dash">Admin Dashboard</div>
+      <div class="arch-node-sub">React · SockJS<br>Leaflet · Chart.js</div>
+    </div>
+  </div>
+
+  <div class="arch-flow" style="margin-top: 8px;">
+    <div class="arch-node">
+      <div class="arch-node-box node-engine">Analysis Engine</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">JPA write</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-db">PostgreSQL</div>
+      <div class="arch-node-sub">devices · events<br>threats · policies</div>
+    </div>
+    <div class="arch-arrow">
+      <div class="arch-arrow-label">R/W</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-db">Redis</div>
+      <div class="arch-node-sub">device state cache<br>session tokens</div>
+    </div>
+    <div class="arch-arrow" style="flex: 3;">
+      <div class="arch-arrow-label">nginx reverse proxy (SSL termination)</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-box node-dash">All clients</div>
+      <div class="arch-node-sub">port 443 only<br>cert pinned</div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 16px;">
+    <strong>Key design choice:</strong> Agents never connect directly to PostgreSQL. All writes go through REST API → RabbitMQ → consumer. This decouples ingestion from processing and handles the 9am burst (200+ devices connecting simultaneously) without DB contention.
+  </div>
+</section>
+
+<!-- 3. TECH STACK -->
+<section id="stack">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <h2>Tech Stack</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Technology</th><th>Version</th><th>Purpose</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5" style="background: rgba(137,180,250,0.05); color: var(--blue); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;">ANDROID AGENT</td></tr>
+      <tr><td>Language</td><td><code>Kotlin</code></td><td>1.9+</td><td>Android development</td><td>Coroutines for async, null safety, less boilerplate than Java</td></tr>
+      <tr><td>UI</td><td><code>Jetpack Compose</code></td><td>1.5+</td><td>UI framework</td><td>Modern declarative UI; minimal screens (enrollment, score, alerts)</td></tr>
+      <tr><td>Background</td><td><code>WorkManager</code></td><td>2.9+</td><td>Periodic scans</td><td>Android 12+ battery optimization kills services; WorkManager survives</td></tr>
+      <tr><td>Local DB</td><td><code>Room</code></td><td>2.6+</td><td>Local threat log</td><td>Typed SQLite wrapper, offline buffer before server sync</td></tr>
+      <tr><td>HTTP</td><td><code>Retrofit + OkHttp</code></td><td>2.9 / 4.12</td><td>REST calls to backend</td><td>Certificate pinning via OkHttp interceptor</td></tr>
+      <tr><td>Crypto</td><td><code>Android Keystore</code></td><td>API 23+</td><td>Credential encryption</td><td>Hardware-backed AES-256; keys never leave secure enclave</td></tr>
+      <tr><td colspan="5" style="background: rgba(166,227,161,0.05); color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;">PC AGENT</td></tr>
+      <tr><td>Language</td><td><code>Java 17</code></td><td>LTS</td><td>Cross-platform daemon</td><td>Same language as backend; shared DTOs possible; JVM runs on Windows/Linux/macOS</td></tr>
+      <tr><td>Build</td><td><code>Maven</code></td><td>3.9+</td><td>Build & packaging</td><td>Fat JAR for single-file distribution</td></tr>
+      <tr><td>File Monitor</td><td><code>WatchService API</code></td><td>JDK built-in</td><td>FIM</td><td>Pure Java, no native dep, cross-platform</td></tr>
+      <tr><td>OS calls</td><td><code>JNA</code></td><td>5.14+</td><td>Process enumeration</td><td>Simpler than JNI; maps C structs directly</td></tr>
+      <tr><td>Local DB</td><td><code>H2 embedded</code></td><td>2.2+</td><td>FIM hash baseline</td><td>Zero install, file-backed, SQL queries for diff</td></tr>
+      <tr><td>HTTP</td><td><code>OkHttp (Java)</code></td><td>4.12</td><td>Event reporting</td><td>Retry + exponential backoff built-in</td></tr>
+      <tr><td colspan="5" style="background: rgba(249,226,175,0.05); color: var(--yellow); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;">BACKEND SERVER</td></tr>
+      <tr><td>Framework</td><td><code>Spring Boot 3</code></td><td>3.2+</td><td>REST API + WebSocket</td><td>Team's strongest backend skill; Spring ecosystem cohesion</td></tr>
+      <tr><td>Auth</td><td><code>Spring Security + JWT</code></td><td>6.x / jjwt 0.12</td><td>Agent + admin auth</td><td>Stateless JWT for agents; refresh rotation for admin</td></tr>
+      <tr><td>Message broker</td><td><code>RabbitMQ</code></td><td>3.12+</td><td>Event queue</td><td>Decouples ingestion from processing; handles burst; dead-letter queue</td></tr>
+      <tr><td>ORM</td><td><code>Spring Data JPA</code></td><td>3.2+</td><td>DB access</td><td>Repository pattern; typed queries</td></tr>
+      <tr><td>Primary DB</td><td><code>PostgreSQL</code></td><td>15+</td><td>Persistent storage</td><td>Structured schema; JOINs for analytics; JSONB for flexible event payload</td></tr>
+      <tr><td>Cache</td><td><code>Redis</code></td><td>7.x</td><td>Device state cache</td><td>Sub-ms score lookup; active session tracking; 24h TTL per device</td></tr>
+      <tr><td>Migrations</td><td><code>Flyway</code></td><td>9.x</td><td>Schema versioning</td><td>Reproducible DB setup; no manual SQL on fresh deploy</td></tr>
+      <tr><td>WebSocket</td><td><code>Spring WebSocket + STOMP</code></td><td>6.x</td><td>Live dashboard push</td><td>Integrates directly with SockJS on React side</td></tr>
+      <tr><td colspan="5" style="background: rgba(243,139,168,0.05); color: var(--red); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;">ADMIN DASHBOARD</td></tr>
+      <tr><td>Framework</td><td><code>React 18</code></td><td>18.x</td><td>SPA</td><td>Component reuse for device cards; concurrent rendering for live feed</td></tr>
+      <tr><td>Language</td><td><code>TypeScript</code></td><td>5.x</td><td>Type safety</td><td>Catches WebSocket payload type errors at compile time</td></tr>
+      <tr><td>Styling</td><td><code>Tailwind CSS + shadcn/ui</code></td><td>3.4 / latest</td><td>UI components</td><td>shadcn gives prebuilt DataTable, Badge, Dialog on Tailwind; zero bundle overhead</td></tr>
+      <tr><td>WebSocket</td><td><code>SockJS + STOMP.js</code></td><td>latest</td><td>Live alerts</td><td>SockJS fallback to polling if WS blocked on college network</td></tr>
+      <tr><td>Maps</td><td><code>Leaflet.js</code></td><td>1.9+</td><td>Campus threat map</td><td>Free, no API key, works offline on campus intranet</td></tr>
+      <tr><td>Charts</td><td><code>Chart.js</code></td><td>4.x</td><td>Analytics panels</td><td>Simpler than D3 for score trends + alert volume bar charts</td></tr>
+      <tr><td>Data fetching</td><td><code>React Query (TanStack)</code></td><td>5.x</td><td>API calls + cache</td><td>Background refetch keeps device list fresh; loading states built-in</td></tr>
+      <tr><td>State</td><td><code>Zustand</code></td><td>4.x</td><td>Global state</td><td>Auth + active alerts + WebSocket connection — 3 stores, lightweight</td></tr>
+      <tr><td colspan="5" style="background: rgba(148,226,213,0.05); color: var(--teal); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;">DEVOPS</td></tr>
+      <tr><td>Containers</td><td><code>Docker + Compose</code></td><td>24+ / 2.x</td><td>Full stack orchestration</td><td>One command deploy; reproducible across environments</td></tr>
+      <tr><td>CI/CD</td><td><code>GitHub Actions</code></td><td>—</td><td>Test + build + deploy</td><td>Free; integrates with GitHub Container Registry</td></tr>
+      <tr><td>Reverse proxy</td><td><code>nginx</code></td><td>1.25+</td><td>SSL + routing</td><td>Serves React build; proxies to Spring Boot; SSL termination</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 4. ANDROID AGENT -->
+<section id="android-agent">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <h2>Android Agent</h2>
+  </div>
+
+  <div class="card-grid cols3">
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Module 1</div>
+      <div class="card-title">Evil Twin Detector</div>
+      <div class="card-body">BroadcastReceiver on NETWORK_STATE_CHANGED. On WiFi connect, fetches current BSSID via WifiManager. Cross-checks against hardcoded list of legitimate WCE MAC addresses. Fires CRITICAL alert if rogue AP detected. Does NOT block connection (requires system-level perms). Notifies user + reports to server.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-blue">WifiManager</span><span class="tag tag-blue">BroadcastReceiver</span></div>
+    </div>
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Module 2</div>
+      <div class="card-title">Security Score Engine</div>
+      <div class="card-body">Calculates 0–100 score. Formula: start 100, deduct: -30 rooted, -20 developer options on, -15 screen lock disabled, -10 per unwhitelisted dangerous-permission app (max -25), -5 unknown BSSID. Runs on WorkManager periodic task (every 30 min). Score stored locally + synced on heartbeat.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-blue">PackageManager</span><span class="tag tag-blue">Settings.Secure</span></div>
+    </div>
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Module 3</div>
+      <div class="card-title">Sophos Auto-Login</div>
+      <div class="card-body">Fires on WiFi connect event. OkHttp POST to Sophos captive portal at 192.168.1.8:8090/userLogin with encrypted credentials from Keystore. Headers: Content-Type: application/x-www-form-urlencoded. No manual portal interaction needed. Logs success/failure to Room DB.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-blue">OkHttp</span><span class="tag tag-blue">WorkManager</span><span class="tag tag-blue">Keystore</span></div>
+    </div>
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Module 4</div>
+      <div class="card-title">ERP Secure WebView</div>
+      <div class="card-body">WebView with FLAG_SECURE (blocks screen capture). Gated by score threshold (configurable from server policy, default ≥ 60). Score below threshold → access denied screen with reason. Auto-fills ERP credentials from Keystore. Clears WebView cache on app background.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-blue">WebView</span><span class="tag tag-blue">FLAG_SECURE</span><span class="tag tag-blue">score gate</span></div>
+    </div>
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Module 5</div>
+      <div class="card-title">Threat Reporter</div>
+      <div class="card-body">Packages events as ThreatEventDTO JSON. POSTs to /api/v1/threats/report with JWT auth. Runs in WorkManager. On network failure, stores event in Room DB and retries with exponential backoff (1s, 2s, 4s, max 60s). Flushes local queue on next successful connection.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-blue">Retrofit</span><span class="tag tag-blue">Room buffer</span><span class="tag tag-blue">backoff</span></div>
+    </div>
+    <div class="card card-accent-blue">
+      <div class="card-label" style="color: var(--blue);">Module 6</div>
+      <div class="card-title">Local Storage & Encryption</div>
+      <div class="card-body">Android Keystore + AES-256-GCM for credential encryption. Room DB with two tables: local_events (offline buffer), app_whitelist (server-pushed). SharedPreferences for device UUID + JWT token (EncryptedSharedPreferences). Zero plaintext credentials ever written to disk.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-blue">Keystore API</span><span class="tag tag-blue">Room</span><span class="tag tag-blue">EncryptedSharedPrefs</span></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 24px;">Setup Flow</h3>
+  <pre><code><span class="cmt">// Student first-time enrollment</span>
+Step 0  → Consent screen (DPDP Act 2023 compliance)
+          "Aegis monitors your device security posture, not your messages or files."
+          [Accept Policy] [View Full Policy]
+
+Step 1  → Install APK from college portal (or scan QR from dashboard)
+
+Step 2  → Enter credentials:
+          - PRN number
+          - Sophos portal username + password  → stored in Keystore
+          - ERP username + password            → stored in Keystore
+
+Step 3  → Grant permissions:
+          - ACCESS_WIFI_STATE (WiFi scan)
+          - ACCESS_FINE_LOCATION (required by Android for WiFi BSSID)
+          - POST_NOTIFICATIONS (alert push)
+
+Step 4  → Agent calls POST /api/v1/agent/register
+          Server returns { deviceUUID, jwtToken, policy }
+
+Step 5  → Background scan starts. App fully active.</code></pre>
+</section>
+
+<!-- 5. PC AGENT -->
+<section id="pc-agent">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <h2>PC Agent</h2>
+  </div>
+
+  <div class="card-grid cols2">
+    <div class="card card-accent-green">
+      <div class="card-label" style="color: var(--green);">Core Module 1</div>
+      <div class="card-title">File Integrity Monitor (FIM)</div>
+      <div class="card-body">On first run, generates SHA-256 baseline of watched directories (configurable, default: /etc, /bin, /usr/bin on Linux; C:\Windows\System32 on Windows). Stores hashes in H2 embedded DB. WatchService listener detects CREATE/MODIFY/DELETE events. On change: recomputes hash, diffs against baseline, fires alert if mismatch. Smart debounce: batch events within 5s window, ignore .tmp/.log extensions.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-green">WatchService</span><span class="tag tag-green">SHA-256</span><span class="tag tag-green">H2/SQLite</span></div>
+    </div>
+    <div class="card card-accent-green">
+      <div class="card-label" style="color: var(--green);">Core Module 2</div>
+      <div class="card-title">Process Monitor</div>
+      <div class="card-body">ProcessHandle.allProcesses() snapshot every 60s. Diffs against previous snapshot. Flags new processes matching suspicious patterns: unexpected powershell.exe, cmd.exe spawned by non-user, curl/wget on Windows, nc (netcat), python -c (one-liner execution). JNA for Windows: checks process parent PID for privilege escalation detection.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-green">JNA</span><span class="tag tag-green">ProcessHandle API</span></div>
+    </div>
+    <div class="card card-accent-green">
+      <div class="card-label" style="color: var(--green);">Core Module 3</div>
+      <div class="card-title">Network Connection Scanner</div>
+      <div class="card-body">Parses netstat output (no Pcap4J — avoids root requirement). Monitors active TCP connections every 30s. Flags: connections to IPs in local blocklist (AbuseIPDB cached daily), port scan behavior (>10 unique destination IPs in 60s), outbound data spike (tracked via /proc/net/dev on Linux or WMI on Windows). Reports anomalies to server.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-green">netstat parsing</span><span class="tag tag-green">AbuseIPDB</span></div>
+    </div>
+    <div class="card card-accent-green">
+      <div class="card-label" style="color: var(--green);">Core Module 4</div>
+      <div class="card-title">Event Queue & Reporter</div>
+      <div class="card-body">In-memory LinkedBlockingQueue buffers events. Batch-flushes every 30s or on CRITICAL event (immediate). OkHttp POST to /api/v1/threats/report with JWT. Exponential backoff on failure. Local H2 table keeps encrypted forensic trail (last 1000 events, 7-day retention). On agent start: replays unsent events from local DB.</div>
+      <div style="margin-top: 10px;"><span class="tag tag-green">OkHttp</span><span class="tag tag-green">Jackson</span><span class="tag tag-green">H2 forensic log</span></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 24px;">PC Agent Config File</h3>
+  <pre><code><span class="cmt"># aegis-agent.properties (in install dir)</span>
+<span class="key">server.url</span>=<span class="str">https://aegis.wce.ac.in</span>
+<span class="key">device.jwt</span>=<span class="str">&lt;issued on registration&gt;</span>
+<span class="key">fim.watch.dirs</span>=<span class="str">/etc,/bin,/usr/local/bin</span>
+<span class="key">fim.debounce.ms</span>=<span class="num">5000</span>
+<span class="key">fim.ignore.extensions</span>=<span class="str">.tmp,.log,.swp</span>
+<span class="key">process.scan.interval.sec</span>=<span class="num">60</span>
+<span class="key">network.scan.interval.sec</span>=<span class="num">30</span>
+<span class="key">report.batch.interval.sec</span>=<span class="num">30</span>
+<span class="key">blocklist.refresh.hours</span>=<span class="num">24</span></code></pre>
+
+  <div class="card-grid cols3" style="margin-top: 16px;">
+    <div class="card">
+      <div class="card-title">Windows</div>
+      <div class="card-body">NSIS installer .exe. Installs as Windows Service (sc create). Autostart on boot. System tray icon shows live security score.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Linux (Ubuntu/Debian)</div>
+      <div class="card-body">.deb package. Registered as systemd service: aegis-agent.service. Runs as unprivileged user aegis with CAP_NET_ADMIN for netstat only.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">macOS (stretch goal)</div>
+      <div class="card-body">LaunchAgent plist. .dmg installer. Lower priority — deprioritize if PC Windows/Linux takes longer than planned.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. BACKEND -->
+<section id="backend">
+  <div class="section-header">
+    <span class="section-num">06</span>
+    <h2>Backend Server — Spring Boot 3</h2>
+  </div>
+
+  <div class="card-grid cols2" style="margin-bottom: 20px;">
+    <div class="card card-accent-yellow">
+      <div class="card-label" style="color: var(--yellow);">Layer</div>
+      <div class="card-title">REST API (Spring MVC)</div>
+      <div class="card-body">Device registration, telemetry ingestion, threat reporting, policy retrieval, admin operations. JWT authentication on all endpoints. Rate limiting: 60 req/min per device via Spring's Bucket4j or a simple Redis counter.</div>
+    </div>
+    <div class="card card-accent-yellow">
+      <div class="card-label" style="color: var(--yellow);">Layer</div>
+      <div class="card-title">Message Broker (RabbitMQ)</div>
+      <div class="card-body">API receives event → publishes to queue → returns 202 immediately. Consumer processes asynchronously. Decouples burst ingestion from DB writes. Separate queues for different event priorities.</div>
+    </div>
+    <div class="card card-accent-yellow">
+      <div class="card-label" style="color: var(--yellow);">Layer</div>
+      <div class="card-title">Analysis Engine</div>
+      <div class="card-body">RabbitMQ @RabbitListener consumers. Applies weighted rule engine to compute device score. Triggers ERP policy block if score < threshold. Correlates events for Patient Zero detection. Pushes WebSocket message to dashboard on alert.</div>
+    </div>
+    <div class="card card-accent-yellow">
+      <div class="card-label" style="color: var(--yellow);">Layer</div>
+      <div class="card-title">Data Layer</div>
+      <div class="card-body">PostgreSQL for persistent storage (all events, devices, policies). Redis for real-time device state cache (current score, online/offline, last seen). Flyway for schema migrations — clean setup on every fresh deploy.</div>
+    </div>
+  </div>
+
+  <h3>Package Structure</h3>
+  <pre><code>aegis-server/src/main/java/in/ac/wce/aegis/
+├── <span class="key">api/</span>
+│   ├── AgentController.java        <span class="cmt">// /api/v1/agent/**</span>
+│   ├── ThreatController.java       <span class="cmt">// /api/v1/threats/**</span>
+│   ├── AdminController.java        <span class="cmt">// /api/v1/admin/**</span>
+│   └── PolicyController.java       <span class="cmt">// /api/v1/policy/**</span>
+├── <span class="key">security/</span>
+│   ├── JwtTokenProvider.java
+│   ├── JwtAuthFilter.java
+│   └── SecurityConfig.java
+├── <span class="key">messaging/</span>
+│   ├── RabbitConfig.java           <span class="cmt">// queue/exchange declarations</span>
+│   ├── TelemetryPublisher.java
+│   └── consumers/
+│       ├── TelemetryConsumer.java
+│       ├── ThreatAlertConsumer.java
+│       └── ScoreUpdateConsumer.java
+├── <span class="key">engine/</span>
+│   ├── RuleEngine.java             <span class="cmt">// threat rule evaluation</span>
+│   ├── ScoreCalculator.java
+│   └── PatientZeroTracker.java
+├── <span class="key">websocket/</span>
+│   ├── WebSocketConfig.java
+│   └── AlertBroadcaster.java
+├── <span class="key">domain/</span>          <span class="cmt">// JPA entities</span>
+├── <span class="key">dto/</span>             <span class="cmt">// request/response DTOs</span>
+├── <span class="key">repository/</span>      <span class="cmt">// Spring Data JPA repos</span>
+└── <span class="key">service/</span>         <span class="cmt">// business logic</span></code></pre>
+</section>
+
+<!-- 7. DATABASE SCHEMA -->
+<section id="database">
+  <div class="section-header">
+    <span class="section-num">07</span>
+    <h2>Database Schema</h2>
+  </div>
+
+  <div class="schema-table">
+    <div class="schema-header">📋 devices</div>
+    <div class="schema-field" style="background: var(--surface2); color: var(--muted); font-size: 10px;">
+      <span>COLUMN</span><span>TYPE</span><span>CONSTRAINT</span><span>DESCRIPTION</span>
+    </div>
+    <div class="schema-field"><span class="field-name">id</span><span class="field-type">UUID</span><span class="field-constraint">PK</span><span class="field-desc">Device UUID, generated on enrollment</span></div>
+    <div class="schema-field"><span class="field-name">prn</span><span class="field-type">VARCHAR(20)</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Student PRN (pseudonymous link to student)</span></div>
+    <div class="schema-field"><span class="field-name">device_type</span><span class="field-type">ENUM</span><span class="field-constraint">NOT NULL</span><span class="field-desc">ANDROID | PC</span></div>
+    <div class="schema-field"><span class="field-name">device_model</span><span class="field-type">VARCHAR(100)</span><span class="field-constraint"></span><span class="field-desc">Phone model / PC hostname</span></div>
+    <div class="schema-field"><span class="field-name">current_score</span><span class="field-type">INT</span><span class="field-constraint">DEFAULT 100</span><span class="field-desc">Latest security score 0–100</span></div>
+    <div class="schema-field"><span class="field-name">risk_level</span><span class="field-type">ENUM</span><span class="field-constraint">NOT NULL</span><span class="field-desc">CLEAN | SUSPICIOUS | COMPROMISED</span></div>
+    <div class="schema-field"><span class="field-name">department</span><span class="field-type">VARCHAR(50)</span><span class="field-constraint"></span><span class="field-desc">CS / IT / ENTC / MECH etc.</span></div>
+    <div class="schema-field"><span class="field-name">last_seen</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Last heartbeat timestamp</span></div>
+    <div class="schema-field"><span class="field-name">erp_access_blocked</span><span class="field-type">BOOLEAN</span><span class="field-constraint">DEFAULT false</span><span class="field-desc">Admin or auto block flag</span></div>
+    <div class="schema-field"><span class="field-name">enrolled_at</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Registration timestamp</span></div>
+    <div class="schema-field"><span class="field-name">consent_accepted</span><span class="field-type">BOOLEAN</span><span class="field-constraint">NOT NULL</span><span class="field-desc">DPDP Act 2023 consent flag</span></div>
+  </div>
+
+  <div class="schema-table">
+    <div class="schema-header">⚡ security_events</div>
+    <div class="schema-field" style="background: var(--surface2); color: var(--muted); font-size: 10px;">
+      <span>COLUMN</span><span>TYPE</span><span>CONSTRAINT</span><span>DESCRIPTION</span>
+    </div>
+    <div class="schema-field"><span class="field-name">id</span><span class="field-type">BIGSERIAL</span><span class="field-constraint">PK</span><span class="field-desc">Auto-increment event ID</span></div>
+    <div class="schema-field"><span class="field-name">device_id</span><span class="field-type">UUID</span><span class="field-constraint">FK → devices</span><span class="field-desc">Source device</span></div>
+    <div class="schema-field"><span class="field-name">event_type</span><span class="field-type">ENUM</span><span class="field-constraint">NOT NULL</span><span class="field-desc">EVIL_TWIN | APK_INSTALL | OTP_READER | ERP_BRUTEFORCE | FIM_CHANGE | PROC_ANOMALY | NET_SCAN | PORT_SCAN</span></div>
+    <div class="schema-field"><span class="field-name">severity</span><span class="field-type">ENUM</span><span class="field-constraint">NOT NULL</span><span class="field-desc">CRITICAL | HIGH | MEDIUM | LOW | INFO</span></div>
+    <div class="schema-field"><span class="field-name">payload</span><span class="field-type">JSONB</span><span class="field-constraint"></span><span class="field-desc">Flexible event data (BSSID, package name, file path, IP, etc.)</span></div>
+    <div class="schema-field"><span class="field-name">acknowledged</span><span class="field-type">BOOLEAN</span><span class="field-constraint">DEFAULT false</span><span class="field-desc">Admin acknowledged flag</span></div>
+    <div class="schema-field"><span class="field-name">occurred_at</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">NOT NULL</span><span class="field-desc">When event occurred on device</span></div>
+    <div class="schema-field"><span class="field-name">received_at</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">DEFAULT NOW()</span><span class="field-desc">When server received event</span></div>
+  </div>
+
+  <div class="schema-table">
+    <div class="schema-header">🗓 heartbeats</div>
+    <div class="schema-field" style="background: var(--surface2); color: var(--muted); font-size: 10px;">
+      <span>COLUMN</span><span>TYPE</span><span>CONSTRAINT</span><span>DESCRIPTION</span>
+    </div>
+    <div class="schema-field"><span class="field-name">id</span><span class="field-type">BIGSERIAL</span><span class="field-constraint">PK</span><span class="field-desc">Auto-increment</span></div>
+    <div class="schema-field"><span class="field-name">device_id</span><span class="field-type">UUID</span><span class="field-constraint">FK → devices</span><span class="field-desc">Source device</span></div>
+    <div class="schema-field"><span class="field-name">score</span><span class="field-type">INT</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Score at time of heartbeat</span></div>
+    <div class="schema-field"><span class="field-name">wifi_bssid</span><span class="field-type">VARCHAR(20)</span><span class="field-constraint"></span><span class="field-desc">Current AP BSSID (Android only)</span></div>
+    <div class="schema-field"><span class="field-name">ip_address</span><span class="field-type">INET</span><span class="field-constraint"></span><span class="field-desc">Device LAN IP</span></div>
+    <div class="schema-field"><span class="field-name">timestamp</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Heartbeat time</span></div>
+  </div>
+
+  <div class="schema-table">
+    <div class="schema-header">📜 access_policies</div>
+    <div class="schema-field" style="background: var(--surface2); color: var(--muted); font-size: 10px;">
+      <span>COLUMN</span><span>TYPE</span><span>CONSTRAINT</span><span>DESCRIPTION</span>
+    </div>
+    <div class="schema-field"><span class="field-name">id</span><span class="field-type">BIGSERIAL</span><span class="field-constraint">PK</span><span class="field-desc"></span></div>
+    <div class="schema-field"><span class="field-name">erp_min_score</span><span class="field-type">INT</span><span class="field-constraint">DEFAULT 60</span><span class="field-desc">Minimum score required for ERP access</span></div>
+    <div class="schema-field"><span class="field-name">alert_thresholds</span><span class="field-type">JSONB</span><span class="field-constraint"></span><span class="field-desc">Per event_type severity overrides</span></div>
+    <div class="schema-field"><span class="field-name">app_whitelist</span><span class="field-type">TEXT[]</span><span class="field-constraint"></span><span class="field-desc">Package names exempt from permission flags (e.g. com.phonepe.app)</span></div>
+    <div class="schema-field"><span class="field-name">known_bssids</span><span class="field-type">TEXT[]</span><span class="field-constraint"></span><span class="field-desc">Legitimate WCE AP MAC addresses</span></div>
+    <div class="schema-field"><span class="field-name">updated_at</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Last policy update timestamp</span></div>
+  </div>
+
+  <div class="schema-table">
+    <div class="schema-header">🔬 patient_zero_clusters</div>
+    <div class="schema-field" style="background: var(--surface2); color: var(--muted); font-size: 10px;">
+      <span>COLUMN</span><span>TYPE</span><span>CONSTRAINT</span><span>DESCRIPTION</span>
+    </div>
+    <div class="schema-field"><span class="field-name">id</span><span class="field-type">BIGSERIAL</span><span class="field-constraint">PK</span><span class="field-desc"></span></div>
+    <div class="schema-field"><span class="field-name">threat_pattern</span><span class="field-type">VARCHAR(100)</span><span class="field-constraint">NOT NULL</span><span class="field-desc">Event type pattern that triggered cluster</span></div>
+    <div class="schema-field"><span class="field-name">patient_zero_id</span><span class="field-type">UUID</span><span class="field-constraint">FK → devices</span><span class="field-desc">Earliest device with this pattern</span></div>
+    <div class="schema-field"><span class="field-name">affected_devices</span><span class="field-type">UUID[]</span><span class="field-constraint"></span><span class="field-desc">All devices with same pattern in time window</span></div>
+    <div class="schema-field"><span class="field-name">first_seen</span><span class="field-type">TIMESTAMP</span><span class="field-constraint">NOT NULL</span><span class="field-desc">When pattern first appeared</span></div>
+    <div class="schema-field"><span class="field-name">spread_count</span><span class="field-type">INT</span><span class="field-constraint">DEFAULT 1</span><span class="field-desc">Number of affected devices</span></div>
+  </div>
+
+  <div class="callout" style="margin-top: 8px;">
+    <strong>Indexes:</strong> Create composite index on <code>security_events(device_id, occurred_at)</code> and <code>security_events(event_type, severity, occurred_at)</code> for dashboard query performance with 50k+ events.
+  </div>
+</section>
+
+<!-- 8. API ENDPOINTS -->
+<section id="endpoints">
+  <div class="section-header">
+    <span class="section-num">08</span>
+    <h2>API Endpoints</h2>
+  </div>
+
+  <div class="callout">
+    Base URL: <code>https://aegis.wce.ac.in/api/v1</code> &nbsp;·&nbsp; All endpoints require <code>Authorization: Bearer &lt;JWT&gt;</code> unless marked PUBLIC &nbsp;·&nbsp; All responses: <code>Content-Type: application/json</code>
+  </div>
+
+  <!-- AGENT ENDPOINTS -->
+  <h3 style="margin-top: 24px; margin-bottom: 12px;">Agent Endpoints</h3>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-post">POST</span>
+      <span class="endpoint-path">/agent/register</span>
+      <span class="badge badge-required">PUBLIC</span>
+      <span style="font-size:11px; color:var(--muted);">Device enrollment</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{
+  <span class="key">"prn"</span>: <span class="str">"2110500064"</span>,
+  <span class="key">"deviceType"</span>: <span class="str">"ANDROID"</span>,          <span class="cmt">// ANDROID | PC</span>
+  <span class="key">"deviceModel"</span>: <span class="str">"Samsung Galaxy A52"</span>,
+  <span class="key">"department"</span>: <span class="str">"CS"</span>,
+  <span class="key">"consentAccepted"</span>: <span class="kw">true</span>
+}</code></pre>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Response 201</div>
+        <pre><code>{
+  <span class="key">"deviceId"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
+  <span class="key">"jwtToken"</span>: <span class="str">"eyJhbGciOiJIUzI1NiJ9..."</span>,
+  <span class="key">"refreshToken"</span>: <span class="str">"rt_abc123..."</span>,
+  <span class="key">"policy"</span>: {
+    <span class="key">"erpMinScore"</span>: <span class="num">60</span>,
+    <span class="key">"knownBssids"</span>: [<span class="str">"aa:bb:cc:dd:ee:ff"</span>, <span class="str">"..."</span>],
+    <span class="key">"appWhitelist"</span>: [<span class="str">"com.phonepe.app"</span>, <span class="str">"in.amazon.mShop.android.shopping"</span>]
+  }
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-post">POST</span>
+      <span class="endpoint-path">/agent/heartbeat</span>
+      <span class="badge badge-agent">AGENT JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Periodic score + telemetry push</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{
+  <span class="key">"score"</span>: <span class="num">74</span>,
+  <span class="key">"wifiBssid"</span>: <span class="str">"aa:bb:cc:dd:ee:ff"</span>,    <span class="cmt">// Android only</span>
+  <span class="key">"ipAddress"</span>: <span class="str">"192.168.1.47"</span>,
+  <span class="key">"scoreBreakdown"</span>: {
+    <span class="key">"rooted"</span>: <span class="kw">false</span>,
+    <span class="key">"devOptionsOn"</span>: <span class="kw">true</span>,
+    <span class="key">"screenLockEnabled"</span>: <span class="kw">true</span>,
+    <span class="key">"riskyAppsCount"</span>: <span class="num">0</span>
+  }
+}</code></pre>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{
+  <span class="key">"policyUpdated"</span>: <span class="kw">false</span>,
+  <span class="key">"erpAccessBlocked"</span>: <span class="kw">false</span>,
+  <span class="key">"policy"</span>: <span class="kw">null</span>   <span class="cmt">// non-null only if policyUpdated = true</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-post">POST</span>
+      <span class="endpoint-path">/threats/report</span>
+      <span class="badge badge-agent">AGENT JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Report threat event</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{
+  <span class="key">"eventType"</span>: <span class="str">"EVIL_TWIN"</span>,
+  <span class="key">"severity"</span>: <span class="str">"CRITICAL"</span>,
+  <span class="key">"occurredAt"</span>: <span class="str">"2026-05-07T10:42:00Z"</span>,
+  <span class="key">"payload"</span>: {
+    <span class="key">"bssid"</span>: <span class="str">"de:ad:be:ef:00:01"</span>,
+    <span class="key">"ssid"</span>: <span class="str">"WCE-WiFi"</span>,
+    <span class="key">"signalStrength"</span>: <span class="num">-45</span>
+  }
+}</code></pre>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Event Types & Payloads</div>
+        <table>
+          <thead><tr><th>eventType</th><th>Key Payload Fields</th><th>Default Severity</th></tr></thead>
+          <tbody>
+            <tr><td><code>EVIL_TWIN</code></td><td>bssid, ssid, signalStrength</td><td>CRITICAL</td></tr>
+            <tr><td><code>APK_UNKNOWN_SOURCE</code></td><td>packageName, installSource, requestedPerms[]</td><td>HIGH</td></tr>
+            <tr><td><code>OTP_READER_APP</code></td><td>packageName, installedAt</td><td>HIGH</td></tr>
+            <tr><td><code>ERP_BRUTEFORCE</code></td><td>requestCount, windowSecs, targetUrl</td><td>HIGH</td></tr>
+            <tr><td><code>FIM_CHANGE</code></td><td>filePath, changeType (CREATE/MODIFY/DELETE), oldHash, newHash</td><td>MEDIUM</td></tr>
+            <tr><td><code>PROCESS_ANOMALY</code></td><td>processName, pid, parentPid, cmdLine</td><td>MEDIUM</td></tr>
+            <tr><td><code>PORT_SCAN</code></td><td>uniqueDestIPs, windowSecs</td><td>HIGH</td></tr>
+            <tr><td><code>MALICIOUS_IP</code></td><td>destinationIp, abuseScore, port</td><td>HIGH</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Response 202</div>
+        <pre><code>{ <span class="key">"eventId"</span>: <span class="num">12345</span>, <span class="key">"queued"</span>: <span class="kw">true</span> }</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/agent/policy</span>
+      <span class="badge badge-agent">AGENT JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Pull current policy for this device</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{
+  <span class="key">"erpMinScore"</span>: <span class="num">60</span>,
+  <span class="key">"knownBssids"</span>: [<span class="str">"aa:bb:cc:dd:ee:ff"</span>],
+  <span class="key">"appWhitelist"</span>: [<span class="str">"com.phonepe.app"</span>, <span class="str">"com.google.android.apps.nbu.paisa.user"</span>],
+  <span class="key">"erpAccessBlocked"</span>: <span class="kw">false</span>,
+  <span class="key">"updatedAt"</span>: <span class="str">"2026-05-01T09:00:00Z"</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-post">POST</span>
+      <span class="endpoint-path">/agent/token/refresh</span>
+      <span class="badge badge-required">PUBLIC</span>
+      <span style="font-size:11px; color:var(--muted);">Refresh expired JWT</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{ <span class="key">"refreshToken"</span>: <span class="str">"rt_abc123..."</span> }</code></pre>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{ <span class="key">"jwtToken"</span>: <span class="str">"eyJhbGciOiJIUzI1NiJ9..."</span>, <span class="key">"refreshToken"</span>: <span class="str">"rt_xyz789..."</span> }</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN ENDPOINTS -->
+  <h3 style="margin-top: 28px; margin-bottom: 12px;">Admin Endpoints</h3>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-post">POST</span>
+      <span class="endpoint-path">/admin/auth/login</span>
+      <span class="badge badge-required">PUBLIC</span>
+      <span style="font-size:11px; color:var(--muted);">Admin dashboard login</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{ <span class="key">"username"</span>: <span class="str">"admin"</span>, <span class="key">"password"</span>: <span class="str">"..."</span> }</code></pre>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{ <span class="key">"token"</span>: <span class="str">"eyJ..."</span>, <span class="key">"role"</span>: <span class="str">"ADMIN"</span>, <span class="key">"expiresIn"</span>: <span class="num">86400</span> }</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/devices</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">List all enrolled devices with scores</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Query Params</div>
+        <div class="param-row"><span class="param-name">department</span><span class="param-type">string?</span><span class="param-desc">Filter by department (CS, IT, ENTC...)</span></div>
+        <div class="param-row"><span class="param-name">riskLevel</span><span class="param-type">string?</span><span class="param-desc">CLEAN | SUSPICIOUS | COMPROMISED</span></div>
+        <div class="param-row"><span class="param-name">deviceType</span><span class="param-type">string?</span><span class="param-desc">ANDROID | PC</span></div>
+        <div class="param-row"><span class="param-name">page</span><span class="param-type">int</span><span class="param-desc">Page number (default 0)</span></div>
+        <div class="param-row"><span class="param-name">size</span><span class="param-type">int</span><span class="param-desc">Page size (default 50)</span></div>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{
+  <span class="key">"devices"</span>: [{
+    <span class="key">"id"</span>: <span class="str">"550e8400..."</span>,
+    <span class="key">"prn"</span>: <span class="str">"2110500064"</span>,
+    <span class="key">"deviceModel"</span>: <span class="str">"Samsung Galaxy A52"</span>,
+    <span class="key">"deviceType"</span>: <span class="str">"ANDROID"</span>,
+    <span class="key">"department"</span>: <span class="str">"CS"</span>,
+    <span class="key">"currentScore"</span>: <span class="num">87</span>,
+    <span class="key">"riskLevel"</span>: <span class="str">"CLEAN"</span>,
+    <span class="key">"erpAccessBlocked"</span>: <span class="kw">false</span>,
+    <span class="key">"lastSeen"</span>: <span class="str">"2026-05-07T10:45:00Z"</span>
+  }],
+  <span class="key">"total"</span>: <span class="num">247</span>, <span class="key">"page"</span>: <span class="num">0</span>, <span class="key">"size"</span>: <span class="num">50</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/devices/{deviceId}</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Full device detail + event timeline</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{
+  <span class="key">"device"</span>: { <span class="cmt">/* full device object */</span> },
+  <span class="key">"recentEvents"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="num">12345</span>,
+      <span class="key">"eventType"</span>: <span class="str">"APK_UNKNOWN_SOURCE"</span>,
+      <span class="key">"severity"</span>: <span class="str">"HIGH"</span>,
+      <span class="key">"payload"</span>: { <span class="key">"packageName"</span>: <span class="str">"com.sus.app"</span> },
+      <span class="key">"occurredAt"</span>: <span class="str">"2026-05-07T10:38:00Z"</span>
+    }
+  ],
+  <span class="key">"scoreHistory"</span>: [
+    { <span class="key">"score"</span>: <span class="num">100</span>, <span class="key">"timestamp"</span>: <span class="str">"2026-05-07T09:00:00Z"</span> },
+    { <span class="key">"score"</span>: <span class="num">87</span>,  <span class="key">"timestamp"</span>: <span class="str">"2026-05-07T10:38:00Z"</span> }
+  ]
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-put">PUT</span>
+      <span class="endpoint-path">/admin/devices/{deviceId}/block</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Block/unblock ERP access for device</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{ <span class="key">"blocked"</span>: <span class="kw">true</span>, <span class="key">"reason"</span>: <span class="str">"Compromised device — OTP reader detected"</span> }</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/threats</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Recent threat events (paginated)</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Query Params</div>
+        <div class="param-row"><span class="param-name">severity</span><span class="param-type">string?</span><span class="param-desc">Filter by CRITICAL | HIGH | MEDIUM | LOW</span></div>
+        <div class="param-row"><span class="param-name">eventType</span><span class="param-type">string?</span><span class="param-desc">Filter by event type</span></div>
+        <div class="param-row"><span class="param-name">acknowledged</span><span class="param-type">boolean?</span><span class="param-desc">false = unacknowledged only</span></div>
+        <div class="param-row"><span class="param-name">from</span><span class="param-type">ISO8601?</span><span class="param-desc">Start of time range</span></div>
+        <div class="param-row"><span class="param-name">to</span><span class="param-type">ISO8601?</span><span class="param-desc">End of time range</span></div>
+        <div class="param-row"><span class="param-name">page / size</span><span class="param-type">int</span><span class="param-desc">Pagination</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-put">PUT</span>
+      <span class="endpoint-path">/admin/threats/{eventId}/acknowledge</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Mark alert as acknowledged</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{ <span class="key">"note"</span>: <span class="str">"Investigated — false positive, Paytm app"</span> }</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/analytics/summary</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Dashboard summary stats</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{
+  <span class="key">"devicesOnline"</span>: <span class="num">247</span>,
+  <span class="key">"alertsToday"</span>: <span class="num">18</span>,
+  <span class="key">"criticalActive"</span>: <span class="num">3</span>,
+  <span class="key">"erpHitsToday"</span>: <span class="num">1204</span>,
+  <span class="key">"scoreDistribution"</span>: { <span class="key">"clean"</span>: <span class="num">201</span>, <span class="key">"suspicious"</span>: <span class="num">38</span>, <span class="key">"compromised"</span>: <span class="num">8</span> },
+  <span class="key">"topThreatTypes"</span>: [
+    { <span class="key">"type"</span>: <span class="str">"APK_UNKNOWN_SOURCE"</span>, <span class="key">"count"</span>: <span class="num">9</span> },
+    { <span class="key">"type"</span>: <span class="str">"EVIL_TWIN"</span>, <span class="key">"count"</span>: <span class="num">4</span> }
+  ]
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/analytics/trends</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Time-series data for charts</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Query Params</div>
+        <div class="param-row"><span class="param-name">period</span><span class="param-type">string</span><span class="param-desc">DAILY | WEEKLY | MONTHLY</span></div>
+        <div class="param-row"><span class="param-name">metric</span><span class="param-type">string</span><span class="param-desc">ALERTS | SCORES | DEVICES_ONLINE</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/patient-zero</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Active threat spread clusters</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Response 200</div>
+        <pre><code>{
+  <span class="key">"clusters"</span>: [{
+    <span class="key">"threatPattern"</span>: <span class="str">"EVIL_TWIN"</span>,
+    <span class="key">"patientZeroDevice"</span>: { <span class="key">"id"</span>: <span class="str">"..."</span>, <span class="key">"prn"</span>: <span class="str">"..."</span>, <span class="key">"model"</span>: <span class="str">"..."</span> },
+    <span class="key">"affectedCount"</span>: <span class="num">12</span>,
+    <span class="key">"firstSeen"</span>: <span class="str">"2026-05-07T10:20:00Z"</span>,
+    <span class="key">"spreadTimeline"</span>: [<span class="cmt">/* device IDs with timestamps */</span>]
+  }]
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-put">PUT</span>
+      <span class="endpoint-path">/admin/policy</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Update global access policy — pushes to all agents</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Request Body</div>
+        <pre><code>{
+  <span class="key">"erpMinScore"</span>: <span class="num">65</span>,
+  <span class="key">"knownBssids"</span>: [<span class="str">"aa:bb:cc:dd:ee:ff"</span>, <span class="str">"11:22:33:44:55:66"</span>],
+  <span class="key">"appWhitelist"</span>: [<span class="str">"com.phonepe.app"</span>, <span class="str">"com.google.android.apps.nbu.paisa.user"</span>, <span class="str">"com.axis.mobile"</span>]
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-get">GET</span>
+      <span class="endpoint-path">/admin/reports/export</span>
+      <span class="badge badge-admin">ADMIN JWT</span>
+      <span style="font-size:11px; color:var(--muted);">Export security report as PDF/CSV</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">Query Params</div>
+        <div class="param-row"><span class="param-name">format</span><span class="param-type">string</span><span class="param-desc">PDF | CSV</span></div>
+        <div class="param-row"><span class="param-name">from</span><span class="param-type">ISO8601</span><span class="param-desc">Report start date</span></div>
+        <div class="param-row"><span class="param-name">to</span><span class="param-type">ISO8601</span><span class="param-desc">Report end date</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEBSOCKET -->
+  <h3 style="margin-top: 28px; margin-bottom: 12px;">WebSocket</h3>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method-ws">WS</span>
+      <span class="endpoint-path">/ws/admin</span>
+      <span class="badge badge-admin">STOMP + SockJS</span>
+      <span style="font-size:11px; color:var(--muted);">Live event stream to dashboard</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="ep-section">
+        <div class="ep-section-label">STOMP Topics (subscribe)</div>
+        <div class="param-row"><span class="param-name">/topic/alerts</span><span class="param-type"></span><span class="param-desc">New threat alert — broadcasts to all admin clients</span></div>
+        <div class="param-row"><span class="param-name">/topic/scores</span><span class="param-type"></span><span class="param-desc">Device score update event</span></div>
+        <div class="param-row"><span class="param-name">/topic/devices</span><span class="param-type"></span><span class="param-desc">Device online/offline status change</span></div>
+        <div class="param-row"><span class="param-name">/topic/patient-zero</span><span class="param-type"></span><span class="param-desc">New cluster detected</span></div>
+      </div>
+      <div class="ep-section">
+        <div class="ep-section-label">Alert Message Shape</div>
+        <pre><code>{
+  <span class="key">"type"</span>: <span class="str">"NEW_ALERT"</span>,
+  <span class="key">"eventId"</span>: <span class="num">12345</span>,
+  <span class="key">"deviceId"</span>: <span class="str">"550e8400..."</span>,
+  <span class="key">"deviceModel"</span>: <span class="str">"Samsung Galaxy A52"</span>,
+  <span class="key">"prn"</span>: <span class="str">"2110500064"</span>,
+  <span class="key">"eventType"</span>: <span class="str">"EVIL_TWIN"</span>,
+  <span class="key">"severity"</span>: <span class="str">"CRITICAL"</span>,
+  <span class="key">"summary"</span>: <span class="str">"Rogue AP detected: BSSID de:ad:be:ef:00:01"</span>,
+  <span class="key">"timestamp"</span>: <span class="str">"2026-05-07T10:42:00Z"</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. RABBITMQ -->
+<section id="rabbitmq">
+  <div class="section-header">
+    <span class="section-num">09</span>
+    <h2>RabbitMQ Queue Design</h2>
+  </div>
+
+  <div class="callout">
+    Exchange: <code>aegis.events</code> (topic exchange) &nbsp;·&nbsp; All queues have DLQ (dead-letter queue) &nbsp;·&nbsp; Management UI: <code>http://localhost:15672</code>
+  </div>
+
+  <div class="queue-card">
+    <div class="queue-name">aegis.telemetry.events</div>
+    <div class="queue-meta">
+      <div class="queue-meta-item">Routing key <span>telemetry.#</span></div>
+      <div class="queue-meta-item">Producer <span>AgentController (heartbeat)</span></div>
+      <div class="queue-meta-item">Consumer <span>TelemetryConsumer</span></div>
+      <div class="queue-meta-item">Priority <span>LOW</span></div>
+    </div>
+    <p style="font-size:12.5px; margin:0;">Processes periodic heartbeats. Updates device score in DB. Updates Redis cache with current device state. Triggers ERP block if score drops below threshold. Low priority — can queue during burst without impacting UX.</p>
+  </div>
+
+  <div class="queue-card">
+    <div class="queue-name">aegis.threat.alerts</div>
+    <div class="queue-meta">
+      <div class="queue-meta-item">Routing key <span>threat.#</span></div>
+      <div class="queue-meta-item">Producer <span>ThreatController</span></div>
+      <div class="queue-meta-item">Consumer <span>ThreatAlertConsumer</span></div>
+      <div class="queue-meta-item">Priority <span>HIGH</span></div>
+    </div>
+    <p style="font-size:12.5px; margin:0;">Processes threat reports. Persists event to security_events table. Applies rule engine to compute severity escalation. Triggers WebSocket push to dashboard. Runs Patient Zero correlation. High priority — processed before telemetry.</p>
+  </div>
+
+  <div class="queue-card">
+    <div class="queue-name">aegis.score.updates</div>
+    <div class="queue-meta">
+      <div class="queue-meta-item">Routing key <span>score.#</span></div>
+      <div class="queue-meta-item">Producer <span>ThreatAlertConsumer (internal)</span></div>
+      <div class="queue-meta-item">Consumer <span>ScoreUpdateConsumer</span></div>
+      <div class="queue-meta-item">Priority <span>MEDIUM</span></div>
+    </div>
+    <p style="font-size:12.5px; margin:0;">Recomputes device score after a threat event. Updates devices.current_score. Updates Redis. Broadcasts score update WebSocket message to dashboard. Separate queue ensures score recalculation doesn't block threat processing.</p>
+  </div>
+
+  <pre style="margin-top: 20px;"><code><span class="cmt">// RabbitConfig.java — bean declarations</span>
+<span class="kw">@Bean</span>
+Queue telemetryQueue() {
+    <span class="kw">return</span> QueueBuilder.durable(<span class="str">"aegis.telemetry.events"</span>)
+        .withArgument(<span class="str">"x-dead-letter-exchange"</span>, <span class="str">"aegis.dlx"</span>)
+        .build();
+}
+
+<span class="kw">@Bean</span>
+TopicExchange aegisExchange() {
+    <span class="kw">return new</span> TopicExchange(<span class="str">"aegis.events"</span>);
+}
+
+<span class="kw">@Bean</span>
+Binding telemetryBinding(Queue telemetryQueue, TopicExchange aegisExchange) {
+    <span class="kw">return</span> BindingBuilder.bind(telemetryQueue)
+        .to(aegisExchange).with(<span class="str">"telemetry.#"</span>);
+}</code></pre>
+</section>
+
+<!-- 10. DASHBOARD -->
+<section id="dashboard">
+  <div class="section-header">
+    <span class="section-num">10</span>
+    <h2>Admin Dashboard</h2>
+  </div>
+
+  <div class="card-grid cols3">
+    <div class="card card-accent-red">
+      <div class="card-label" style="color:var(--red);">Panel 1</div>
+      <div class="card-title">Live Threat Map</div>
+      <div class="card-body">Leaflet.js campus satellite map. Markers for reported rogue APs (EVIL_TWIN events). Color-coded by severity. Click marker → device detail panel. Real-time via WebSocket /topic/alerts.</div>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-label" style="color:var(--red);">Panel 2</div>
+      <div class="card-title">Device Health Board</div>
+      <div class="card-body">shadcn/ui DataTable. All enrolled devices. Live score badges (React Query 30s refetch). Filter by dept / risk / type. One-click block ERP. Bulk policy push.</div>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-label" style="color:var(--red);">Panel 3</div>
+      <div class="card-title">Alert Feed</div>
+      <div class="card-body">Real-time WebSocket stream. Each card: device name, event type, severity badge, timestamp. Acknowledge / escalate / dismiss. Browser sound on CRITICAL. Toast notification.</div>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-label" style="color:var(--red);">Panel 4</div>
+      <div class="card-title">Patient Zero Tracker</div>
+      <div class="card-body">Clusters threats by time window. Shows first-infected device, spread timeline, affected device count. Visual spread graph using Chart.js. Helps isolate infection source fast.</div>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-label" style="color:var(--red);">Panel 5</div>
+      <div class="card-title">Analytics</div>
+      <div class="card-body">Chart.js line + bar charts. Daily/weekly alert volume, score distribution histogram, top threat types pie chart, per-department risk ranking. Export to PDF/CSV.</div>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-label" style="color:var(--red);">Panel 6</div>
+      <div class="card-title">Policy Manager</div>
+      <div class="card-body">Set ERP min score threshold. Manage known BSSID list. Manage app whitelist. Changes pushed to all agents via /admin/policy PUT → RabbitMQ broadcast → agents pull on next heartbeat.</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 24px;">Frontend Project Structure</h3>
+  <pre><code>aegis-dashboard/src/
+├── <span class="key">api/</span>
+│   ├── agentApi.ts
+│   ├── adminApi.ts
+│   └── wsClient.ts          <span class="cmt">// SockJS + STOMP setup</span>
+├── <span class="key">components/</span>
+│   ├── DeviceTable.tsx
+│   ├── AlertFeed.tsx
+│   ├── ThreatMap.tsx
+│   ├── ScoreBadge.tsx
+│   └── PatientZeroView.tsx
+├── <span class="key">pages/</span>
+│   ├── Dashboard.tsx
+│   ├── DeviceDetail.tsx
+│   ├── Analytics.tsx
+│   └── PolicyManager.tsx
+├── <span class="key">store/</span>             <span class="cmt">// Zustand stores</span>
+│   ├── authStore.ts
+│   ├── alertStore.ts
+│   └── wsStore.ts
+└── <span class="key">hooks/</span>
+    ├── useDevices.ts    <span class="cmt">// React Query</span>
+    └── useAlerts.ts</code></pre>
+</section>
+
+<!-- 11. DEVOPS -->
+<section id="devops">
+  <div class="section-header">
+    <span class="section-num">11</span>
+    <h2>DevOps & Docker</h2>
+  </div>
+
+  <h3>Docker Compose Services</h3>
+
+  <div class="docker-service">
+    <div class="service-name">aegis-server</div>
+    <div class="service-details">
+      <div class="service-detail-row"><strong>Image:</strong> ghcr.io/your-org/aegis-server:latest &nbsp;·&nbsp; <strong>Port:</strong> 8080 (internal only)</div>
+      <div class="service-detail-row"><strong>Env:</strong> SPRING_DATASOURCE_URL, SPRING_RABBITMQ_HOST, REDIS_HOST, JWT_SECRET, ABUSEIPDB_API_KEY</div>
+      <div class="service-detail-row"><strong>Depends on:</strong> postgres, rabbitmq, redis</div>
+    </div>
+  </div>
+
+  <div class="docker-service">
+    <div class="service-name">postgres</div>
+    <div class="service-details">
+      <div class="service-detail-row"><strong>Image:</strong> postgres:15 &nbsp;·&nbsp; <strong>Port:</strong> 5432 (internal) &nbsp;·&nbsp; <strong>Volume:</strong> pgdata:/var/lib/postgresql/data</div>
+      <div class="service-detail-row"><strong>Env:</strong> POSTGRES_DB=aegis, POSTGRES_USER=aegis, POSTGRES_PASSWORD</div>
+    </div>
+  </div>
+
+  <div class="docker-service">
+    <div class="service-name">rabbitmq</div>
+    <div class="service-details">
+      <div class="service-detail-row"><strong>Image:</strong> rabbitmq:3-management &nbsp;·&nbsp; <strong>Ports:</strong> 5672 (AMQP internal), 15672 (management UI — localhost only)</div>
+      <div class="service-detail-row"><strong>Note:</strong> Management UI on :15672 is a great examiner demo — shows live queue depth in real time</div>
+    </div>
+  </div>
+
+  <div class="docker-service">
+    <div class="service-name">redis</div>
+    <div class="service-details">
+      <div class="service-detail-row"><strong>Image:</strong> redis:7 &nbsp;·&nbsp; <strong>Port:</strong> 6379 (internal) &nbsp;·&nbsp; <strong>Config:</strong> maxmemory 256mb, maxmemory-policy allkeys-lru</div>
+    </div>
+  </div>
+
+  <div class="docker-service">
+    <div class="service-name">nginx</div>
+    <div class="service-details">
+      <div class="service-detail-row"><strong>Image:</strong> nginx:1.25 &nbsp;·&nbsp; <strong>Ports:</strong> 443 (HTTPS, exposed), 80 (redirect to 443)</div>
+      <div class="service-detail-row"><strong>Serves:</strong> React build (static files) + proxies /api/** and /ws/** to aegis-server:8080</div>
+      <div class="service-detail-row"><strong>SSL:</strong> Let's Encrypt cert (or self-signed for demo)</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 24px;">GitHub Actions CI/CD</h3>
+  <pre><code><span class="cmt"># .github/workflows/ci.yml — simplified</span>
+on: push
+
+jobs:
+  test-backend:
+    <span class="key">steps:</span>
+      - <span class="str">mvn test</span>  <span class="cmt"># JUnit + Spring Boot tests</span>
+
+  test-android:
+    <span class="key">steps:</span>
+      - <span class="str">./gradlew test</span>  <span class="cmt"># Robolectric unit tests</span>
+
+  test-frontend:
+    <span class="key">steps:</span>
+      - <span class="str">npm test</span>  <span class="cmt"># Jest + React Testing Library</span>
+
+  deploy:
+    needs: [test-backend, test-android, test-frontend]
+    if: github.ref == 'refs/heads/main'
+    <span class="key">steps:</span>
+      - <span class="str">docker build → push to ghcr.io</span>
+      - <span class="str">SSH to college server → docker compose pull → docker compose up -d</span></code></pre>
+
+  <h3>Monorepo Structure</h3>
+  <pre><code>aegis/
+├── aegis-server/            <span class="cmt">← Spring Boot (Maven)</span>
+│   ├── src/
+│   ├── pom.xml
+│   └── Dockerfile
+├── aegis-android/           <span class="cmt">← Kotlin Jetpack Compose (Gradle)</span>
+│   └── app/src/
+├── aegis-pc-agent/          <span class="cmt">← Java 17 daemon (Maven)</span>
+│   ├── src/
+│   └── pom.xml
+├── aegis-dashboard/         <span class="cmt">← React 18 + TypeScript (npm)</span>
+│   ├── src/
+│   └── package.json
+├── docker-compose.yml
+├── docker-compose.dev.yml   <span class="cmt">← Dev overrides (hot reload, no SSL)</span>
+├── nginx/
+│   └── aegis.conf
+├── db/
+│   └── migrations/          <span class="cmt">← Flyway SQL files (V1__, V2__...)</span>
+└── .github/
+    └── workflows/</code></pre>
+</section>
+
+<!-- 12. SECURITY DESIGN -->
+<section id="security">
+  <div class="section-header">
+    <span class="section-num">12</span>
+    <h2>Security Design</h2>
+  </div>
+
+  <div class="card-grid cols2">
+    <div class="card">
+      <div class="card-title">Authentication</div>
+      <ul class="doc-list" style="margin-top: 8px;">
+        <li>Agents: JWT (HS256, 24h expiry) + refresh token rotation</li>
+        <li>Admin: JWT (HS256, 8h expiry) stored in httpOnly cookie (not localStorage)</li>
+        <li>Separate signing secrets for agent tokens vs admin tokens</li>
+        <li>JWT revocation via Redis blocklist on logout / device unenroll</li>
+        <li>Rate limit: 60 req/min per device UUID via Redis counter</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Transport Security</div>
+      <ul class="doc-list" style="margin-top: 8px;">
+        <li>All API calls over HTTPS — nginx handles SSL termination</li>
+        <li>Certificate pinning on Android (OkHttp CertificatePinner)</li>
+        <li>Certificate pinning on PC agent (OkHttp)</li>
+        <li>HSTS header enforced by nginx</li>
+        <li>WebSocket connection over WSS (secure WebSocket)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Credential Storage</div>
+      <ul class="doc-list" style="margin-top: 8px;">
+        <li>Android: Keystore + AES-256-GCM — hardware-backed on supported devices</li>
+        <li>Android: EncryptedSharedPreferences for JWT + device UUID</li>
+        <li>PC agent: OS keychain (Windows Credential Manager / libsecret on Linux)</li>
+        <li>Server: bcrypt for admin passwords (strength 12)</li>
+        <li>Zero plaintext credentials ever logged or sent over network</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Server Hardening</div>
+      <ul class="doc-list" style="margin-top: 8px;">
+        <li>nginx: only ports 80 + 443 exposed externally</li>
+        <li>All other services (PostgreSQL, RabbitMQ, Redis) on Docker bridge network only</li>
+        <li>Spring Security: CORS restricted to dashboard origin only</li>
+        <li>Input validation via @Valid on all DTOs</li>
+        <li>JSONB payload size limit: 4KB per event</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 13. PRIVACY -->
+<section id="privacy">
+  <div class="section-header">
+    <span class="section-num">13</span>
+    <h2>Privacy Design (DPDP Act 2023)</h2>
+  </div>
+
+  <div class="callout success">
+    India's Digital Personal Data Protection Act 2023 requires informed consent for processing personal data. Aegis is designed for compliance: pseudonymous IDs, behavior-only monitoring, explicit consent, data minimization.
+  </div>
+
+  <div class="card-grid cols2">
+    <div class="card">
+      <div class="card-title">What Aegis collects</div>
+      <ul class="doc-list" style="margin-top: 8px;">
+        <li>Device UUID (pseudonymous — not name or student ID by default)</li>
+        <li>Security score + breakdown (root status, dev options, screen lock)</li>
+        <li>App permission flags (which dangerous permissions granted, not content)</li>
+        <li>WiFi BSSID (AP identifier, not browsing activity)</li>
+        <li>Network connection endpoints (IPs + ports, not payload)</li>
+        <li>File system change events (path + hash, not file content)</li>
+        <li>Process names + PIDs (not command arguments containing user data)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">What Aegis never collects</div>
+      <ul class="doc-list" style="margin-top: 8px;">
+        <li>SMS or call content</li>
+        <li>Browser history or browsing activity</li>
+        <li>Photos, camera, or microphone access</li>
+        <li>Location (GPS coordinates)</li>
+        <li>File content (only hashes for integrity)</li>
+        <li>Keystrokes or input</li>
+        <li>Any data from outside the Aegis app sandbox</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warn" style="margin-top: 12px;">
+    <strong>Consent requirement:</strong> First screen on enrollment must display clear summary of data collected and obtain explicit acceptance. Store <code>consent_accepted = true</code> + timestamp in devices table. Without this field, device registration fails.
+  </div>
+</section>
+
+<!-- 14. PHASES -->
+<section id="phases">
+  <div class="section-header">
+    <span class="section-num">14</span>
+    <h2>Build Phases</h2>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-header-bar" style="background: rgba(137,180,250,0.08);">
+      <span class="phase-num" style="background:rgba(137,180,250,0.15);color:var(--blue);">Phase 1</span>
+      <span class="phase-title">Foundation & Project Setup</span>
+      <span class="phase-weeks">Weeks 1–3</span>
+    </div>
+    <div class="phase-body">
+      <div class="card-grid cols3">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Backend scaffold</div>
+          <ul class="doc-list"><li>Spring Boot project init, packages, Dockerfile</li><li>PostgreSQL schema V1 (Flyway migration)</li><li>RabbitMQ config + all 3 queues declared</li><li>JWT auth skeleton (filter chain)</li><li>Docker Compose full stack running</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Android project</div>
+          <ul class="doc-list"><li>Kotlin + Compose setup, package structure</li><li>Room DB schema (local_events, app_whitelist)</li><li>Android Keystore credential storage helper</li><li>Retrofit client with cert pinning</li><li>Basic enrollment UI shell</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">PC agent scaffold</div>
+          <ul class="doc-list"><li>Maven project, package structure</li><li>Config file parser (Properties)</li><li>OkHttp client with JWT header</li><li>Device registration call (POST /agent/register)</li><li>H2 embedded DB setup</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-header-bar" style="background: rgba(166,227,161,0.08);">
+      <span class="phase-num" style="background:rgba(166,227,161,0.15);color:var(--green);">Phase 2</span>
+      <span class="phase-title">Android Agent Core</span>
+      <span class="phase-weeks">Weeks 4–7</span>
+    </div>
+    <div class="phase-body">
+      <div class="card-grid cols3">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Detection</div>
+          <ul class="doc-list"><li>BroadcastReceiver WiFi BSSID check</li><li>Security Score Engine (all 5 deductions)</li><li>Unknown-source APK install detection</li><li>WorkManager periodic scan task</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Features</div>
+          <ul class="doc-list"><li>Sophos auto-login (OkHttp POST on WiFi connect)</li><li>ERP Secure WebView with score gate</li><li>Threat Reporter (Retrofit + offline buffer)</li><li>Student push notification on alert</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Backend (parallel)</div>
+          <ul class="doc-list"><li>POST /agent/register handler</li><li>POST /agent/heartbeat handler</li><li>POST /threats/report → RabbitMQ publish</li><li>TelemetryConsumer (score update to DB)</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-header-bar" style="background: rgba(249,226,175,0.08);">
+      <span class="phase-num" style="background:rgba(249,226,175,0.15);color:var(--yellow);">Phase 3</span>
+      <span class="phase-title">PC Agent + Backend Processing</span>
+      <span class="phase-weeks">Weeks 8–11</span>
+    </div>
+    <div class="phase-body">
+      <div class="card-grid cols3">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">PC Agent</div>
+          <ul class="doc-list"><li>FIM: baseline snapshot + WatchService listener</li><li>Process Monitor: ProcessHandle + JNA</li><li>Network Scanner: netstat + AbuseIPDB</li><li>Event queue + batch reporter</li><li>Windows installer + Linux .deb</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Backend: Rule Engine</div>
+          <ul class="doc-list"><li>ThreatAlertConsumer — rule evaluation</li><li>ScoreUpdateConsumer — score recalculation</li><li>WebSocket push on alert (AlertBroadcaster)</li><li>ERP policy enforcement logic</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Backend: Analytics</div>
+          <ul class="doc-list"><li>Patient Zero correlation (time-window clustering)</li><li>GET /admin/devices, /admin/threats</li><li>GET /admin/analytics/summary, /trends</li><li>GET /admin/patient-zero</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-header-bar" style="background: rgba(243,139,168,0.08);">
+      <span class="phase-num" style="background:rgba(243,139,168,0.15);color:var(--red);">Phase 4</span>
+      <span class="phase-title">Admin Dashboard</span>
+      <span class="phase-weeks">Weeks 12–14</span>
+    </div>
+    <div class="phase-body">
+      <div class="card-grid cols3">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Core views</div>
+          <ul class="doc-list"><li>Dashboard overview (summary cards)</li><li>Device Health Board (DataTable + filters)</li><li>Device Detail page (timeline + score history)</li><li>Alert Feed (WebSocket live stream)</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Advanced views</div>
+          <ul class="doc-list"><li>Leaflet.js campus threat map</li><li>Patient Zero Tracker visualization</li><li>Analytics charts (Chart.js)</li><li>Policy Manager (whitelist + BSSID + score threshold)</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Polish</div>
+          <ul class="doc-list"><li>Auth (login page, JWT in httpOnly cookie)</li><li>Role-based: ADMIN vs READ_ONLY</li><li>PDF/CSV export (report endpoint)</li><li>Browser sound + toast on CRITICAL</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-header-bar" style="background: rgba(89,89,89,0.15);">
+      <span class="phase-num" style="background:rgba(89,89,89,0.2);color:var(--dim);">Phase 5</span>
+      <span class="phase-title">Integration, Testing & Hardening</span>
+      <span class="phase-weeks">Weeks 15–16</span>
+    </div>
+    <div class="phase-body">
+      <div class="card-grid cols3">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">E2E Testing</div>
+          <ul class="doc-list"><li>Simulate Evil Twin (create fake AP, verify alert fires)</li><li>Simulate APK unknown-source install</li><li>Simulate FIM file change on lab PC</li><li>Load test: 50 simulated agents via script</li><li>Verify E2E latency &lt; 5s: event → dashboard</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Demo Script</div>
+          <ul class="doc-list"><li>Install suspicious APK on test phone</li><li>Score drops, CRITICAL alert fires</li><li>Dashboard shows live alert with device name</li><li>Admin blocks ERP access → phone shows "access denied"</li><li>Admin acknowledges alert, unblocks device</li></ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Packaging</div>
+          <ul class="doc-list"><li>APK build + signing (release keystore)</li><li>PC installer builds (Windows .exe, Linux .deb)</li><li>Student onboarding guide (1-page PDF)</li><li>Admin manual</li><li>Demo video (backup if live demo fails)</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /content -->
+</main>
+</div><!-- /layout -->
+
+<script>
+// Smooth scroll for sidebar links
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.nav-link').forEach(l => l.style.color = '');
+    link.style.color = 'var(--accent)';
+  });
+});
+</script>
+</body>
+</html>
