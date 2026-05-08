@@ -1,7 +1,7 @@
 import type {
   DeviceListResponse, DeviceDetailResponse,
   ThreatListResponse, AnalyticsSummary,
-  PatientZeroCluster, Policy
+  Policy
 } from '../types';
 
 // BYPASS: Mocking all API responses since backend is disconnected
@@ -14,7 +14,7 @@ export const adminApi = {
     throw new Error('Invalid credentials');
   },
 
-  getDevices: async (params?: any) => {
+  getDevices: async (_params?: any) => {
     return {
       data: {
         total: 3,
@@ -46,11 +46,11 @@ export const adminApi = {
     };
   },
 
-  blockDevice: async (id: string, blocked: boolean, reason?: string) => {
+  blockDevice: async (_id: string, _blocked: boolean, _reason?: string) => {
     return { data: { success: true } };
   },
 
-  getThreats: async (params?: any) => {
+  getThreats: async (_params?: any) => {
     return {
       data: {
         total: 2,
@@ -64,7 +64,7 @@ export const adminApi = {
     };
   },
 
-  acknowledgeEvent: async (id: number, note?: string) => {
+  acknowledgeEvent: async (_id: number, _note?: string) => {
     return { data: { success: true } };
   },
 
@@ -80,7 +80,7 @@ export const adminApi = {
     };
   },
 
-  getTrends: async (period = 'DAILY', metric = 'ALERTS') => {
+  getTrends: async (_period = 'DAILY', _metric = 'ALERTS') => {
     return { data: {} };
   },
 
@@ -107,7 +107,7 @@ export const adminApi = {
     return { data: { ...data } as Policy };
   },
 
-  exportReport: async (format = 'CSV') => {
+  exportReport: async (_format = 'CSV') => {
     return { data: new Blob(['mock csv data'], { type: 'text/csv' }) };
   },
 };
