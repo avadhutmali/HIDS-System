@@ -11,6 +11,11 @@ import { Link } from 'react-router-dom';
 import type { Severity } from '../types';
 import { formatDistanceToNow } from '../utils/format';
 
+const cardStyle = {
+  background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02)',
+};
+
 export function DashboardPage() {
   const { data: summary, isLoading } = useQuery({
     queryKey: ['analytics-summary'],
@@ -37,121 +42,115 @@ export function DashboardPage() {
   const sd = summary?.scoreDistribution;
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 className="text-xl font-bold text-white">Security Overview</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>
+            Security Overview
+          </h1>
+          <p style={{ fontSize: '14px', color: '#64748b', marginTop: '2px' }}>
             WCE Campus · Real-time intrusion detection
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-lg border"
-             style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'var(--color-surface)' }}>
-          <Activity className="w-3 h-3" style={{ color: 'var(--color-accent)' }} />
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          fontSize: '12px', fontFamily: 'var(--font-mono)',
+          padding: '8px 14px', borderRadius: '10px',
+          background: '#ffffff', border: '1px solid #e2e8f0', color: '#64748b',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+        }}>
+          <Activity style={{ width: '14px', height: '14px', color: '#4f46e5' }} />
           Live · {new Date().toLocaleTimeString('en-IN')}
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Devices Online"
-          value={summary?.devicesOnline ?? '—'}
-          icon={<Monitor className="w-5 h-5" />}
-          accent="cyan"
-          subtitle="Last 5 minutes"
-        />
-        <StatCard
-          title="Alerts Today"
-          value={summary?.alertsToday ?? '—'}
-          icon={<Bell className="w-5 h-5" />}
-          accent="yellow"
-          subtitle="All severities"
-        />
-        <StatCard
-          title="Critical Active"
-          value={summary?.criticalActive ?? '—'}
-          icon={<AlertTriangle className="w-5 h-5" />}
-          accent="red"
-          subtitle="Unacknowledged"
-        />
-        <StatCard
-          title="Clean Devices"
-          value={sd?.clean ?? '—'}
-          icon={<Shield className="w-5 h-5" />}
-          accent="green"
-          subtitle={`Suspicious: ${sd?.suspicious ?? 0} · Compromised: ${sd?.compromised ?? 0}`}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <StatCard title="Devices Online" value={summary?.devicesOnline ?? '—'}
+          icon={<Monitor style={{ width: '20px', height: '20px' }} />} accent="cyan" subtitle="Last 5 minutes" />
+        <StatCard title="Alerts Today" value={summary?.alertsToday ?? '—'}
+          icon={<Bell style={{ width: '20px', height: '20px' }} />} accent="yellow" subtitle="All severities" />
+        <StatCard title="Critical Active" value={summary?.criticalActive ?? '—'}
+          icon={<AlertTriangle style={{ width: '20px', height: '20px' }} />} accent="red" subtitle="Unacknowledged" />
+        <StatCard title="Clean Devices" value={sd?.clean ?? '—'}
+          icon={<Shield style={{ width: '20px', height: '20px' }} />} accent="green"
+          subtitle={`Suspicious: ${sd?.suspicious ?? 0} · Compromised: ${sd?.compromised ?? 0}`} />
       </div>
 
-      {/* Score Distribution */}
+      {/* Risk Distribution */}
       {sd && (
-        <div className="rounded-xl border p-5" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
+        <div style={{ ...cardStyle, padding: '24px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
+            <TrendingUp style={{ width: '16px', height: '16px', color: '#4f46e5' }} />
             Risk Distribution
           </h2>
-          <div className="flex gap-2 h-3 rounded-full overflow-hidden">
-            {(sd.clean + sd.suspicious + sd.compromised) > 0 && (
-              <>
-                <div className="bg-green-500 rounded-full transition-all duration-700"
-                     style={{ width: `${(sd.clean / (sd.clean + sd.suspicious + sd.compromised)) * 100}%` }} />
-                <div className="bg-yellow-500 rounded-full transition-all duration-700"
-                     style={{ width: `${(sd.suspicious / (sd.clean + sd.suspicious + sd.compromised)) * 100}%` }} />
-                <div className="bg-red-500 rounded-full transition-all duration-700"
-                     style={{ width: `${(sd.compromised / (sd.clean + sd.suspicious + sd.compromised)) * 100}%` }} />
-              </>
-            )}
+          <div style={{ display: 'flex', gap: '4px', height: '10px', borderRadius: '999px', overflow: 'hidden', background: '#f1f5f9' }}>
+            {(sd.clean + sd.suspicious + sd.compromised) > 0 && (<>
+              <div style={{ width: `${(sd.clean / (sd.clean + sd.suspicious + sd.compromised)) * 100}%`, background: '#22c55e', borderRadius: '999px', transition: 'width 0.7s ease' }} />
+              <div style={{ width: `${(sd.suspicious / (sd.clean + sd.suspicious + sd.compromised)) * 100}%`, background: '#f59e0b', borderRadius: '999px', transition: 'width 0.7s ease' }} />
+              <div style={{ width: `${(sd.compromised / (sd.clean + sd.suspicious + sd.compromised)) * 100}%`, background: '#ef4444', borderRadius: '999px', transition: 'width 0.7s ease' }} />
+            </>)}
           </div>
-          <div className="flex gap-6 mt-3">
+          <div style={{ display: 'flex', gap: '28px', marginTop: '14px' }}>
             {[
-              { label: 'Clean', count: sd.clean, color: 'text-green-400' },
-              { label: 'Suspicious', count: sd.suspicious, color: 'text-yellow-400' },
-              { label: 'Compromised', count: sd.compromised, color: 'text-red-400' },
-            ].map(({ label, count, color }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className={`text-sm font-bold ${color}`}>{count}</span>
-                <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{label}</span>
+              { label: 'Clean', count: sd.clean, color: '#059669', dot: '#22c55e' },
+              { label: 'Suspicious', count: sd.suspicious, color: '#d97706', dot: '#f59e0b' },
+              { label: 'Compromised', count: sd.compromised, color: '#dc2626', dot: '#ef4444' },
+            ].map(({ label, count, color, dot }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dot }} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color }}>{count}</span>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>{label}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Two column: Recent Devices + Live Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Two column: Devices + Live Feed */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         {/* Recent Devices */}
-        <div className="rounded-xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Cpu className="w-4 h-4" style={{ color: 'var(--color-accent)' }} /> Devices
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #f1f5f9' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Cpu style={{ width: '16px', height: '16px', color: '#4f46e5' }} /> Devices
             </h2>
-            <Link to="/devices" className="text-xs font-mono transition-colors hover:text-white"
-                  style={{ color: 'var(--color-accent)' }}>View all →</Link>
+            <Link to="/devices" style={{ fontSize: '12px', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>
+              View all →
+            </Link>
           </div>
-          <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-            {devicesData?.devices.map(d => (
-              <Link key={d.id} to={`/devices/${d.id}`}
-                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/3 transition-colors group">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                     style={{ background: 'var(--color-surface2)' }}>
+          <div>
+            {devicesData?.devices.map((d, i) => (
+              <Link key={d.id} to={`/devices/${d.id}`} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '14px 22px', textDecoration: 'none',
+                borderBottom: i < (devicesData.devices.length - 1) ? '1px solid #f8fafc' : 'none',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: '#f1f5f9', flexShrink: 0,
+                }}>
                   {d.deviceType === 'ANDROID'
-                    ? <Smartphone className="w-3.5 h-3.5" style={{ color: 'var(--color-blue)' }} />
-                    : <Monitor className="w-3.5 h-3.5" style={{ color: 'var(--color-green)' }} />}
+                    ? <Smartphone style={{ width: '16px', height: '16px', color: '#4f46e5' }} />
+                    : <Monitor style={{ width: '16px', height: '16px', color: '#059669' }} />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-white truncate group-hover:text-cyan-400 transition-colors">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {d.deviceModel ?? d.prn}
                   </div>
-                  <div className="text-[11px] font-mono" style={{ color: 'var(--color-muted)' }}>
+                  <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94a3b8' }}>
                     {d.department} · {formatDistanceToNow(d.lastSeen)}
                   </div>
                 </div>
                 <ScoreBadge score={d.currentScore} />
               </Link>
             )) ?? (
-              <p className="px-5 py-8 text-center text-sm" style={{ color: 'var(--color-muted)' }}>
+              <p style={{ padding: '40px 22px', textAlign: 'center', fontSize: '13px', color: '#94a3b8' }}>
                 No devices enrolled
               </p>
             )}
@@ -159,25 +158,24 @@ export function DashboardPage() {
         </div>
 
         {/* Live Alert Feed */}
-        <div className="rounded-xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #f1f5f9' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239,68,68,0.4)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
               Live Feed
             </h2>
-            <Link to="/alerts" className="text-xs font-mono transition-colors hover:text-white"
-                  style={{ color: 'var(--color-accent)' }}>View all →</Link>
+            <Link to="/alerts" style={{ fontSize: '12px', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>
+              View all →
+            </Link>
           </div>
-          <div className="p-3 space-y-2 max-h-72 overflow-y-auto">
+          <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
             {alerts.slice(0, 8).length > 0
               ? alerts.slice(0, 8).map((a, i) => <AlertCard key={i} alert={a} />)
               : (
-                <div className="flex flex-col items-center justify-center py-10 gap-2">
-                  <Shield className="w-8 h-8 opacity-20" />
-                  <p className="text-sm" style={{ color: 'var(--color-muted)' }}>No live alerts</p>
-                  <p className="text-xs font-mono" style={{ color: 'var(--color-border2)' }}>
-                    Waiting for events…
-                  </p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '50px 0', gap: '10px' }}>
+                  <Shield style={{ width: '32px', height: '32px', color: '#e2e8f0' }} />
+                  <p style={{ fontSize: '13px', color: '#94a3b8' }}>No live alerts</p>
+                  <p style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#cbd5e1' }}>Waiting for events…</p>
                 </div>
               )}
           </div>
@@ -186,43 +184,36 @@ export function DashboardPage() {
 
       {/* Recent Threats */}
       {threatsData && threatsData.events.length > 0 && (
-        <div className="rounded-xl border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400" /> Recent Threats
+        <div style={{ ...cardStyle, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #f1f5f9' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle style={{ width: '16px', height: '16px', color: '#ef4444' }} /> Recent Threats
             </h2>
-            <Link to="/alerts" className="text-xs font-mono" style={{ color: 'var(--color-accent)' }}>View all →</Link>
+            <Link to="/alerts" style={{ fontSize: '12px', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>View all →</Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--color-border)' }}>
-                  {['Event Type', 'Severity', 'Device', 'Time'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-[10px] font-mono tracking-wider uppercase"
-                        style={{ color: 'var(--color-muted)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                {threatsData.events.map(e => (
-                  <tr key={e.id} className="hover:bg-white/3 transition-colors">
-                    <td className="px-5 py-3 font-mono text-xs" style={{ color: 'var(--color-blue)' }}>
-                      {e.eventType.replace(/_/g, ' ')}
-                    </td>
-                    <td className="px-5 py-3">
-                      <SeverityBadge severity={e.severity as Severity} />
-                    </td>
-                    <td className="px-5 py-3 font-mono text-xs" style={{ color: 'var(--color-dim)' }}>
-                      {e.deviceId.slice(0, 8)}…
-                    </td>
-                    <td className="px-5 py-3 text-xs" style={{ color: 'var(--color-muted)' }}>
-                      {formatDistanceToNow(e.occurredAt)}
-                    </td>
-                  </tr>
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                {['Event Type', 'Severity', 'Device', 'Time'].map(h => (
+                  <th key={h} style={{ padding: '12px 22px', textAlign: 'left', fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94a3b8' }}>{h}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {threatsData.events.map(e => (
+                <tr key={e.id} style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.15s' }}
+                  onMouseEnter={ev => (ev.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={ev => (ev.currentTarget.style.background = 'transparent')}>
+                  <td style={{ padding: '12px 22px', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: '#4f46e5' }}>
+                    {e.eventType.replace(/_/g, ' ')}
+                  </td>
+                  <td style={{ padding: '12px 22px' }}><SeverityBadge severity={e.severity as Severity} /></td>
+                  <td style={{ padding: '12px 22px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#475569' }}>{e.deviceId.slice(0, 8)}…</td>
+                  <td style={{ padding: '12px 22px', fontSize: '12px', color: '#94a3b8' }}>{formatDistanceToNow(e.occurredAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

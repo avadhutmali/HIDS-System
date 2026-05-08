@@ -2,252 +2,113 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart2, TrendingUp, AlertTriangle, Shield } from 'lucide-react';
 import { adminApi } from '../api/adminApi';
 import { PageLoader } from '../components/LoadingSpinner';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale,
-  BarElement, ArcElement, PointElement, LineElement,
-  Filler, Tooltip, Legend,
-} from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 
-ChartJS.register(
-  CategoryScale, LinearScale, BarElement, ArcElement,
-  PointElement, LineElement, Filler, Tooltip, Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const CHART_COLORS = {
-  cyan: 'rgba(0,212,255,0.8)',
-  red: 'rgba(243,139,168,0.8)',
-  yellow: 'rgba(249,226,175,0.8)',
-  orange: 'rgba(250,179,135,0.8)',
-  blue: 'rgba(137,180,250,0.8)',
-  green: 'rgba(166,227,161,0.8)',
-  purple: 'rgba(203,166,247,0.8)',
-  teal: 'rgba(148,226,213,0.8)',
-};
-
-const CHART_COLORS_LIST = Object.values(CHART_COLORS);
+const COLORS = ['rgba(79,70,229,0.8)','rgba(220,38,38,0.8)','rgba(217,119,6,0.8)','rgba(234,88,12,0.8)','rgba(37,99,235,0.8)','rgba(22,163,74,0.8)','rgba(124,58,237,0.8)','rgba(13,148,136,0.8)'];
+const card = { background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02)' };
 
 export function AnalyticsPage() {
-  const { data: summary, isLoading } = useQuery({
-    queryKey: ['analytics-summary'],
-    queryFn: () => adminApi.getAnalyticsSummary().then(r => r.data),
-    refetchInterval: 60_000,
-  });
-
+  const { data: summary, isLoading } = useQuery({ queryKey: ['analytics-summary'], queryFn: () => adminApi.getAnalyticsSummary().then(r => r.data), refetchInterval: 60_000 });
   if (isLoading || !summary) return <PageLoader />;
 
   const sd = summary.scoreDistribution;
-  const total = (sd.clean ?? 0) + (sd.suspicious ?? 0) + (sd.compromised ?? 0);
+  const total = (sd.clean??0) + (sd.suspicious??0) + (sd.compromised??0);
 
-  // Doughnut: Risk distribution
   const riskDoughnut = {
-    labels: ['Clean', 'Suspicious', 'Compromised'],
-    datasets: [{
-      data: [sd.clean ?? 0, sd.suspicious ?? 0, sd.compromised ?? 0],
-      backgroundColor: [
-        'rgba(166,227,161,0.8)',
-        'rgba(249,226,175,0.8)',
-        'rgba(243,139,168,0.8)',
-      ],
-      borderColor: ['#a6e3a1', '#f9e2af', '#f38ba8'],
-      borderWidth: 2,
-      hoverOffset: 6,
-    }],
+    labels: ['Clean','Suspicious','Compromised'],
+    datasets: [{ data: [sd.clean??0,sd.suspicious??0,sd.compromised??0], backgroundColor: ['rgba(22,163,74,0.75)','rgba(245,158,11,0.75)','rgba(239,68,68,0.75)'], borderColor: ['#059669','#d97706','#dc2626'], borderWidth: 2, hoverOffset: 6 }],
   };
-
-  // Bar: Top threat types
   const topThreats = summary.topThreatTypes ?? [];
   const threatBar = {
-    labels: topThreats.map(t => t.type.replace(/_/g, ' ')),
-    datasets: [{
-      label: 'Occurrences',
-      data: topThreats.map(t => t.count),
-      backgroundColor: topThreats.map((_, i) => CHART_COLORS_LIST[i % CHART_COLORS_LIST.length]),
-      borderColor: topThreats.map((_, i) => CHART_COLORS_LIST[i % CHART_COLORS_LIST.length].replace('0.8', '1')),
-      borderWidth: 1,
-      borderRadius: 5,
-    }],
+    labels: topThreats.map(t => t.type.replace(/_/g,' ')),
+    datasets: [{ label: 'Occurrences', data: topThreats.map(t => t.count), backgroundColor: topThreats.map((_,i) => COLORS[i%COLORS.length]), borderColor: topThreats.map((_,i) => COLORS[i%COLORS.length].replace('0.8','1')), borderWidth: 1, borderRadius: 6 }],
   };
-
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { color: '#89939e', font: { size: 11 }, padding: 16, boxWidth: 12 },
-      },
-      tooltip: { backgroundColor: '#141c24', borderColor: '#1e2d3d', borderWidth: 1 },
-    },
-  };
-
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { color: '#545f70', font: { size: 10 } },
-      },
-      x: {
-        grid: { display: false },
-        ticks: { color: '#545f70', font: { size: 10 }, maxRotation: 30 },
-      },
-    },
-    plugins: {
-      legend: { display: false },
-      tooltip: { backgroundColor: '#141c24', borderColor: '#1e2d3d', borderWidth: 1 },
-    },
-  };
+  const dOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' as const, labels: { color: '#475569', font: { size: 11 }, padding: 16, boxWidth: 12 } }, tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#e2e8f0', borderColor: '#334155', borderWidth: 1 } } };
+  const bOpts = { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 30 } } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#e2e8f0', borderColor: '#334155', borderWidth: 1 } } };
 
   const metrics = [
-    {
-      label: 'Total Devices',
-      value: total,
-      sub: `${sd.clean ?? 0} clean`,
-      icon: <Shield className="w-5 h-5" />,
-      accent: 'text-cyan-400 bg-cyan-500/10',
-    },
-    {
-      label: 'Alerts Today',
-      value: summary.alertsToday,
-      sub: 'All severities',
-      icon: <AlertTriangle className="w-5 h-5" />,
-      accent: 'text-yellow-400 bg-yellow-500/10',
-    },
-    {
-      label: 'Critical Unacked',
-      value: summary.criticalActive,
-      sub: 'Needs attention',
-      icon: <TrendingUp className="w-5 h-5" />,
-      accent: 'text-red-400 bg-red-500/10',
-    },
-    {
-      label: 'Devices Online',
-      value: summary.devicesOnline,
-      sub: 'Last 5 minutes',
-      icon: <BarChart2 className="w-5 h-5" />,
-      accent: 'text-green-400 bg-green-500/10',
-    },
+    { label: 'Total Devices', value: total, sub: `${sd.clean??0} clean`, icon: <Shield style={{ width: '20px', height: '20px' }} />, iconBg: '#eef2ff', iconColor: '#4f46e5' },
+    { label: 'Alerts Today', value: summary.alertsToday, sub: 'All severities', icon: <AlertTriangle style={{ width: '20px', height: '20px' }} />, iconBg: '#fffbeb', iconColor: '#d97706' },
+    { label: 'Critical Unacked', value: summary.criticalActive, sub: 'Needs attention', icon: <TrendingUp style={{ width: '20px', height: '20px' }} />, iconBg: '#fef2f2', iconColor: '#dc2626' },
+    { label: 'Devices Online', value: summary.devicesOnline, sub: 'Last 5 minutes', icon: <BarChart2 style={{ width: '20px', height: '20px' }} />, iconBg: '#f0fdf4', iconColor: '#059669' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <BarChart2 className="w-5 h-5" style={{ color: 'var(--color-accent)' }} />
-          Analytics
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-0.02em' }}>
+          <BarChart2 style={{ width: '22px', height: '22px', color: '#4f46e5' }} /> Analytics
         </h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          Security posture and threat trends
-        </p>
+        <p style={{ fontSize: '14px', color: '#64748b', marginTop: '2px' }}>Security posture and threat trends</p>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         {metrics.map(m => (
-          <div key={m.label} className="rounded-xl border p-4 animate-fade-in"
-               style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-            <div className={`inline-flex p-2.5 rounded-lg mb-3 ${m.accent}`}>{m.icon}</div>
-            <div className="text-2xl font-bold text-white">{m.value}</div>
-            <div className="text-xs font-semibold" style={{ color: 'var(--color-dim)' }}>{m.label}</div>
-            <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--color-muted)' }}>{m.sub}</div>
+          <div key={m.label} className="animate-fade-in" style={{ ...card, padding: '22px' }}>
+            <div style={{ display: 'inline-flex', padding: '10px', borderRadius: '12px', background: m.iconBg, color: m.iconColor, marginBottom: '14px' }}>{m.icon}</div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>{m.value}</div>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: '#475569' }}>{m.label}</div>
+            <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94a3b8', marginTop: '4px' }}>{m.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Risk Distribution Doughnut */}
-        <div className="rounded-xl border p-5"
-             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <h2 className="text-sm font-semibold text-white mb-5">Risk Distribution</h2>
-          <div className="h-64">
-            {total > 0
-              ? <Doughnut data={riskDoughnut} options={doughnutOptions} />
-              : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-sm" style={{ color: 'var(--color-muted)' }}>No device data</p>
-                </div>
-              )}
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div style={{ ...card, padding: '24px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '20px' }}>Risk Distribution</h2>
+          <div style={{ height: '260px' }}>{total > 0 ? <Doughnut data={riskDoughnut} options={dOpts} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ fontSize: '13px', color: '#94a3b8' }}>No device data</p></div>}</div>
           {total > 0 && (
-            <div className="grid grid-cols-3 gap-3 mt-5">
-              {[
-                { label: 'Clean', val: sd.clean ?? 0, color: 'text-green-400', pct: total },
-                { label: 'Suspicious', val: sd.suspicious ?? 0, color: 'text-yellow-400', pct: total },
-                { label: 'Compromised', val: sd.compromised ?? 0, color: 'text-red-400', pct: total },
-              ].map(({ label, val, color, pct }) => (
-                <div key={label} className="text-center p-2 rounded-lg"
-                     style={{ background: 'var(--color-surface2)' }}>
-                  <div className={`text-lg font-bold ${color}`}>{val}</div>
-                  <div className="text-[10px]" style={{ color: 'var(--color-muted)' }}>{label}</div>
-                  <div className="text-[10px] font-mono" style={{ color: 'var(--color-border2)' }}>
-                    {pct > 0 ? Math.round((val / pct) * 100) : 0}%
-                  </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '20px' }}>
+              {[{ l: 'Clean', v: sd.clean??0, c: '#059669' },{ l: 'Suspicious', v: sd.suspicious??0, c: '#d97706' },{ l: 'Compromised', v: sd.compromised??0, c: '#dc2626' }].map(({l,v,c}) => (
+                <div key={l} style={{ textAlign: 'center', padding: '10px', borderRadius: '10px', background: '#f8fafc' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: c }}>{v}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>{l}</div>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94a3b8' }}>{total > 0 ? Math.round((v/total)*100) : 0}%</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Top Threat Types Bar */}
-        <div className="rounded-xl border p-5"
-             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <h2 className="text-sm font-semibold text-white mb-5">Top Threat Types (Today)</h2>
-          <div className="h-64">
-            {topThreats.length > 0
-              ? <Bar data={threatBar} options={barOptions} />
-              : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-sm" style={{ color: 'var(--color-muted)' }}>No threat data for today</p>
-                </div>
-              )}
-          </div>
+        <div style={{ ...card, padding: '24px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '20px' }}>Top Threat Types (Today)</h2>
+          <div style={{ height: '260px' }}>{topThreats.length > 0 ? <Bar data={threatBar} options={bOpts} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ fontSize: '13px', color: '#94a3b8' }}>No threat data for today</p></div>}</div>
         </div>
       </div>
 
-      {/* Top Threats Table */}
       {topThreats.length > 0 && (
-        <div className="rounded-xl border overflow-hidden"
-             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h2 className="text-sm font-semibold text-white">Threat Breakdown</h2>
+        <div style={{ ...card, overflow: 'hidden' }}>
+          <div style={{ padding: '18px 22px', borderBottom: '1px solid #f1f5f9' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Threat Breakdown</h2>
           </div>
-          <table className="w-full text-sm">
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="border-b" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface2)' }}>
-                <th className="px-5 py-3 text-left text-[10px] font-mono tracking-wider uppercase" style={{ color: 'var(--color-muted)' }}>#</th>
-                <th className="px-5 py-3 text-left text-[10px] font-mono tracking-wider uppercase" style={{ color: 'var(--color-muted)' }}>Threat Type</th>
-                <th className="px-5 py-3 text-left text-[10px] font-mono tracking-wider uppercase" style={{ color: 'var(--color-muted)' }}>Count</th>
-                <th className="px-5 py-3 text-left text-[10px] font-mono tracking-wider uppercase" style={{ color: 'var(--color-muted)' }}>Share</th>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                {['#','Threat Type','Count','Share'].map(h => (
+                  <th key={h} style={{ padding: '14px 22px', textAlign: 'left', fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94a3b8' }}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-              {topThreats.map((t, i) => {
-                const totalThreats = topThreats.reduce((s, tt) => s + Number(tt.count), 0);
-                const pct = totalThreats > 0 ? Math.round((Number(t.count) / totalThreats) * 100) : 0;
+            <tbody>
+              {topThreats.map((t,i) => {
+                const tot = topThreats.reduce((s,tt) => s+Number(tt.count),0);
+                const pct = tot > 0 ? Math.round((Number(t.count)/tot)*100) : 0;
                 return (
-                  <tr key={t.type} className="hover:bg-white/3 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-xs" style={{ color: 'var(--color-muted)' }}>
-                      {i + 1}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="font-mono text-xs" style={{ color: CHART_COLORS_LIST[i % CHART_COLORS_LIST.length].replace('0.8)', '1)') }}>
-                        {t.type.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-sm font-bold text-white">
-                      {t.count}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 rounded-full" style={{ background: 'var(--color-border)' }}>
-                          <div className="h-1.5 rounded-full transition-all duration-500"
-                               style={{ width: `${pct}%`, background: CHART_COLORS_LIST[i % CHART_COLORS_LIST.length].replace('0.8)', '1)') }} />
+                  <tr key={t.type} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <td style={{ padding: '14px 22px', fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#94a3b8' }}>{i+1}</td>
+                    <td style={{ padding: '14px 22px' }}><span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: COLORS[i%COLORS.length].replace('0.8)','1)') }}>{t.type.replace(/_/g,' ')}</span></td>
+                    <td style={{ padding: '14px 22px', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.count}</td>
+                    <td style={{ padding: '14px 22px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ flex: 1, height: '6px', borderRadius: '999px', background: '#f1f5f9' }}>
+                          <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s ease', width: `${pct}%`, background: COLORS[i%COLORS.length].replace('0.8)','1)') }} />
                         </div>
-                        <span className="text-xs font-mono" style={{ color: 'var(--color-muted)' }}>{pct}%</span>
+                        <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#64748b', minWidth: '36px' }}>{pct}%</span>
                       </div>
                     </td>
                   </tr>

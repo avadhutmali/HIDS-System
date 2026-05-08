@@ -1,17 +1,25 @@
 export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const sz = size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-10 h-10' : 'w-6 h-6';
+  const s = size === 'sm' ? 16 : size === 'lg' ? 40 : 24;
   return (
-    <div className={`${sz} border-2 border-current border-t-transparent rounded-full animate-spin`}
-         style={{ color: 'var(--color-accent)' }} />
+    <div style={{
+      width: `${s}px`, height: `${s}px`,
+      border: '2.5px solid #e2e8f0',
+      borderTopColor: '#4f46e5',
+      borderRadius: '50%',
+      animation: 'spin 0.7s linear infinite',
+    }} />
   );
 }
 
 export function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-64">
-      <div className="flex flex-col items-center gap-3">
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '300px',
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
         <LoadingSpinner size="lg" />
-        <p className="text-xs font-mono" style={{ color: 'var(--color-muted)' }}>Loading…</p>
+        <p style={{ fontSize: '13px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>Loading…</p>
       </div>
     </div>
   );

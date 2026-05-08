@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react';
 import { adminApi } from '../api/adminApi';
 import { useAuthStore } from '../store/authStore';
 import { connectWebSocket } from '../api/wsClient';
@@ -32,110 +32,169 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
-         style={{ background: 'var(--color-bg)' }}>
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10"
-             style={{ background: 'radial-gradient(circle, var(--color-accent) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full opacity-5"
-             style={{ background: 'radial-gradient(circle, var(--color-purple) 0%, transparent 70%)' }} />
-      </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#f8fafc',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Decorative blobs */}
+      <div style={{
+        position: 'absolute', top: '-120px', right: '-80px',
+        width: '400px', height: '400px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '-100px', left: '-60px',
+        width: '350px', height: '350px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
 
-      <div className="relative w-full max-w-sm mx-4 animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-               style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.3)' }}>
-            <Shield className="w-7 h-7" style={{ color: 'var(--color-accent)' }} />
+      <div className="animate-fade-in" style={{ width: '100%', maxWidth: '420px', padding: '0 20px' }}>
+        {/* Logo + branding */}
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '56px', height: '56px', borderRadius: '16px',
+            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+            boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+            marginBottom: '20px',
+          }}>
+            <ShieldCheck style={{ width: '28px', height: '28px', color: '#ffffff' }} />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Aegis HIDS</h1>
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            Admin Dashboard · WCE Sangli
+          <h1 style={{
+            fontSize: '26px', fontWeight: 700, color: '#0f172a',
+            letterSpacing: '-0.03em', marginBottom: '6px',
+          }}>Aegis HIDS</h1>
+          <p style={{ fontSize: '14px', color: '#64748b' }}>
+            Secure Admin Dashboard
           </p>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl p-7 border"
-             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-mono font-semibold mb-1.5 tracking-wider uppercase"
-                     style={{ color: 'var(--color-muted)' }}>Username</label>
+        {/* Login card */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '20px',
+          padding: '36px 32px 32px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+              Welcome back
+            </h2>
+            <p style={{ fontSize: '13px', color: '#94a3b8' }}>
+              Sign in to your admin account
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            {/* Username */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block', fontSize: '13px', fontWeight: 600,
+                color: '#334155', marginBottom: '8px',
+              }}>Username</label>
               <input
                 id="username"
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all"
-                style={{
-                  background: 'var(--color-surface2)',
-                  border: '1px solid var(--color-border)',
-                  color: 'var(--color-text)',
-                }}
-                onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
-                onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-                placeholder="admin"
+                className="input-field"
+                placeholder="Enter your username"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-mono font-semibold mb-1.5 tracking-wider uppercase"
-                     style={{ color: 'var(--color-muted)' }}>Password</label>
-              <div className="relative">
+            {/* Password */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block', fontSize: '13px', fontWeight: 600,
+                color: '#334155', marginBottom: '8px',
+              }}>Password</label>
+              <div style={{ position: 'relative' }}>
                 <input
                   id="password"
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pr-10 rounded-lg text-sm outline-none transition-all"
-                  style={{
-                    background: 'var(--color-surface2)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text)',
-                  }}
-                  onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
-                  onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-                  placeholder="••••••••"
+                  className="input-field"
+                  style={{ paddingRight: '42px' }}
+                  placeholder="Enter your password"
                   required
                 />
                 <button type="button" onClick={() => setShowPass(!showPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                        style={{ color: 'var(--color-muted)' }}>
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  style={{
+                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8',
+                    padding: '2px', display: 'flex', transition: 'color 0.15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#475569')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
+                >
+                  {showPass ? <EyeOff style={{ width: '18px', height: '18px' }} /> : <Eye style={{ width: '18px', height: '18px' }} />}
                 </button>
               </div>
             </div>
 
+            {/* Error */}
             {error && (
-              <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5 animate-fade-in">
+              <div className="animate-fade-in" style={{
+                fontSize: '13px', color: '#dc2626',
+                background: '#fef2f2', border: '1px solid #fecaca',
+                borderRadius: '10px', padding: '10px 14px', marginBottom: '20px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
                 {error}
               </div>
             )}
 
+            {/* Submit */}
             <button
               id="login-btn"
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:brightness-110 active:scale-98 disabled:opacity-50"
-              style={{ background: 'var(--color-accent)', color: '#080c10' }}
+              className="btn-primary"
+              style={{ width: '100%', padding: '12px' }}
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div style={{
+                  width: '18px', height: '18px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: '#ffffff',
+                  borderRadius: '50%',
+                  animation: 'spin 0.6s linear infinite',
+                }} />
               ) : (
-                <LogIn className="w-4 h-4" />
+                <LogIn style={{ width: '18px', height: '18px' }} />
               )}
               {loading ? 'Authenticating…' : 'Sign In'}
             </button>
           </form>
 
-          <p className="text-center mt-4 text-[11px] font-mono" style={{ color: 'var(--color-muted)' }}>
-            Default: admin / admin123
-          </p>
+          <div style={{
+            textAlign: 'center', marginTop: '20px', paddingTop: '20px',
+            borderTop: '1px solid #f1f5f9',
+          }}>
+            <p style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+              Default: <span style={{ color: '#64748b', fontWeight: 500 }}>admin</span> / <span style={{ color: '#64748b', fontWeight: 500 }}>admin123</span>
+            </p>
+          </div>
         </div>
 
-        <p className="text-center mt-6 text-[11px] font-mono" style={{ color: 'var(--color-muted)' }}>
+        {/* Footer */}
+        <p style={{
+          textAlign: 'center', marginTop: '28px',
+          fontSize: '12px', color: '#94a3b8',
+        }}>
           Aegis HIDS v1.0 · Walchand College of Engineering, Sangli
         </p>
       </div>

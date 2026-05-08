@@ -27,33 +27,45 @@ export function AlertCard({ alert, onDismiss }: AlertCardProps) {
   const isCritical = alert.severity === 'CRITICAL';
 
   return (
-    <div className={`relative rounded-lg border p-3.5 animate-slide-in transition-all ${
-      isCritical
-        ? 'border-red-500/40 bg-red-500/5'
-        : 'border-slate-700/50 bg-slate-800/30'
-    }`}>
+    <div className="animate-slide-in" style={{
+      position: 'relative',
+      borderRadius: '12px',
+      padding: '14px 16px',
+      background: isCritical ? '#fef2f2' : '#f8fafc',
+      border: `1px solid ${isCritical ? '#fecaca' : '#e2e8f0'}`,
+      transition: 'all 0.15s ease',
+    }}>
       {isCritical && (
-        <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg bg-gradient-to-r from-red-500 to-orange-500" />
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+          borderRadius: '12px 12px 0 0',
+          background: 'linear-gradient(90deg, #ef4444, #f97316)',
+        }} />
       )}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             {alert.severity && <SeverityBadge severity={alert.severity as Severity} />}
-            <span className="text-xs font-mono text-slate-400">
+            <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#64748b' }}>
               {eventTypeLabel[alert.eventType ?? alert.type] ?? alert.type}
             </span>
           </div>
           {alert.summary && (
-            <p className="text-sm text-slate-200 leading-snug truncate">{alert.summary}</p>
+            <p style={{
+              fontSize: '13px', lineHeight: 1.5, color: '#1e293b',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{alert.summary}</p>
           )}
-          <div className="flex items-center gap-3 mt-1.5">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
             {alert.prn && (
-              <span className="text-[11px] font-mono text-slate-500">PRN: {alert.prn}</span>
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748b' }}>
+                PRN: {alert.prn}
+              </span>
             )}
             {alert.deviceModel && (
-              <span className="text-[11px] text-slate-500 truncate">{alert.deviceModel}</span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>{alert.deviceModel}</span>
             )}
-            <span className="text-[11px] text-slate-600 ml-auto">
+            <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: 'auto' }}>
               {formatDistanceToNow(alert.timestamp)}
             </span>
           </div>
@@ -61,7 +73,13 @@ export function AlertCard({ alert, onDismiss }: AlertCardProps) {
         {onDismiss && (
           <button
             onClick={onDismiss}
-            className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0 text-lg leading-none mt-0.5"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '18px', lineHeight: 1, color: '#94a3b8',
+              padding: '2px', transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#475569')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
           >×</button>
         )}
       </div>

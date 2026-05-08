@@ -7,11 +7,13 @@ import { ScoreBadge } from '../components/ScoreBadge';
 import { PageLoader } from '../components/LoadingSpinner';
 import { formatDistanceToNow } from '../utils/format';
 
-const riskColors = {
-  CLEAN:       'text-green-400 bg-green-500/10 border-green-500/30',
-  SUSPICIOUS:  'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
-  COMPROMISED: 'text-red-400 bg-red-500/10 border-red-500/30',
+const riskMap: Record<string, { bg: string; color: string; border: string }> = {
+  CLEAN:       { bg: '#f0fdf4', color: '#059669', border: '#bbf7d0' },
+  SUSPICIOUS:  { bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
+  COMPROMISED: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
 };
+
+const card = { background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02)' };
 
 export function DevicesPage() {
   const [search, setSearch] = useState('');
@@ -22,161 +24,114 @@ export function DevicesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['devices', riskFilter, typeFilter, page],
-    queryFn: () => adminApi.getDevices({
-      riskLevel: riskFilter || undefined,
-      deviceType: typeFilter || undefined,
-      page, size: 20,
-    }).then(r => r.data),
+    queryFn: () => adminApi.getDevices({ riskLevel: riskFilter || undefined, deviceType: typeFilter || undefined, page, size: 20 }).then(r => r.data),
     refetchInterval: 30_000,
   });
 
   const blockMutation = useMutation({
-    mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) =>
-      adminApi.blockDevice(id, blocked),
+    mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) => adminApi.blockDevice(id, blocked),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['devices'] }),
   });
 
   const filtered = data?.devices.filter(d =>
-    !search || d.prn.toLowerCase().includes(search.toLowerCase()) ||
-    d.deviceModel?.toLowerCase().includes(search.toLowerCase())
+    !search || d.prn.toLowerCase().includes(search.toLowerCase()) || d.deviceModel?.toLowerCase().includes(search.toLowerCase())
   ) ?? [];
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">Device Health Board</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            {data?.total ?? 0} enrolled devices
-          </p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div>
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>Device Health Board</h1>
+        <p style={{ fontSize: '14px', color: '#64748b', marginTop: '2px' }}>{data?.total ?? 0} enrolled devices</p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-                  style={{ color: 'var(--color-muted)' }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search PRN or model…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm outline-none transition-all"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-            onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
-            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-          />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#94a3b8' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search PRN or model…"
+            className="input-field" style={{ paddingLeft: '40px' }} />
         </div>
-        {[
-          { label: 'All Risk', value: '', setter: setRiskFilter, options: [['', 'All Risk'], ['CLEAN', 'Clean'], ['SUSPICIOUS', 'Suspicious'], ['COMPROMISED', 'Compromised']] },
-          { label: 'All Types', value: '', setter: setTypeFilter, options: [['', 'All Types'], ['ANDROID', 'Android'], ['PC', 'PC']] },
-        ].map(({ label, options, setter }, i) => (
-          <select key={i} onChange={e => setter(e.target.value)}
-            className="px-3 py-2.5 rounded-lg text-sm outline-none"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-            {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        ))}
+        <select onChange={e => setRiskFilter(e.target.value)} className="input-field" style={{ width: 'auto', minWidth: '140px' }}>
+          <option value="">All Risk</option><option value="CLEAN">Clean</option><option value="SUSPICIOUS">Suspicious</option><option value="COMPROMISED">Compromised</option>
+        </select>
+        <select onChange={e => setTypeFilter(e.target.value)} className="input-field" style={{ width: 'auto', minWidth: '130px' }}>
+          <option value="">All Types</option><option value="ANDROID">Android</option><option value="PC">PC</option>
+        </select>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden"
-           style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <div style={{ ...card, overflow: 'hidden' }}>
         {isLoading ? <PageLoader /> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface2)' }}>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   {['Device', 'PRN', 'Type', 'Score', 'Risk', 'ERP', 'Last Seen', ''].map(h => (
-                    <th key={h} className="px-4 py-3.5 text-left text-[10px] font-mono tracking-wider uppercase"
-                        style={{ color: 'var(--color-muted)' }}>{h}</th>
+                    <th key={h} style={{ padding: '14px 20px', textAlign: 'left', fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94a3b8' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+              <tbody>
                 {filtered.map(d => (
-                  <tr key={d.id} className="hover:bg-white/3 transition-colors group">
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                             style={{ background: 'var(--color-surface2)' }}>
-                          {d.deviceType === 'ANDROID'
-                            ? <Smartphone className="w-3.5 h-3.5 text-blue-400" />
-                            : <Monitor className="w-3.5 h-3.5 text-green-400" />}
+                  <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '34px', height: '34px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', flexShrink: 0 }}>
+                          {d.deviceType === 'ANDROID' ? <Smartphone style={{ width: '16px', height: '16px', color: '#4f46e5' }} /> : <Monitor style={{ width: '16px', height: '16px', color: '#059669' }} />}
                         </div>
                         <div>
-                          <div className="font-medium text-white text-xs">{d.deviceModel ?? '—'}</div>
-                          <div className="font-mono text-[10px]" style={{ color: 'var(--color-muted)' }}>
-                            {d.department}
-                          </div>
+                          <div style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a' }}>{d.deviceModel ?? '—'}</div>
+                          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94a3b8' }}>{d.department}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 font-mono text-xs" style={{ color: 'var(--color-blue)' }}>
-                      {d.prn}
+                    <td style={{ padding: '14px 20px', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: '#4f46e5' }}>{d.prn}</td>
+                    <td style={{ padding: '14px 20px' }}>
+                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: '#f1f5f9', color: '#475569' }}>{d.deviceType}</span>
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded border"
-                            style={{ color: 'var(--color-dim)', borderColor: 'var(--color-border)' }}>
-                        {d.deviceType}
-                      </span>
+                    <td style={{ padding: '14px 20px' }}><ScoreBadge score={d.currentScore} /></td>
+                    <td style={{ padding: '14px 20px' }}>
+                      {(() => { const r = riskMap[d.riskLevel] ?? riskMap.CLEAN; return (
+                        <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', background: r.bg, color: r.color, border: `1px solid ${r.border}` }}>{d.riskLevel}</span>
+                      ); })()}
                     </td>
-                    <td className="px-4 py-3.5"><ScoreBadge score={d.currentScore} /></td>
-                    <td className="px-4 py-3.5">
-                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${riskColors[d.riskLevel]}`}>
-                        {d.riskLevel}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <button
-                        onClick={() => blockMutation.mutate({ id: d.id, blocked: !d.erpAccessBlocked })}
-                        title={d.erpAccessBlocked ? 'Unblock ERP' : 'Block ERP'}
-                        className={`flex items-center gap-1.5 text-[11px] font-mono px-2 py-1 rounded transition-all ${
-                          d.erpAccessBlocked
-                            ? 'text-red-400 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20'
-                            : 'text-green-400 bg-green-500/10 border border-green-500/30 hover:bg-green-500/20'
-                        }`}>
-                        {d.erpAccessBlocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                    <td style={{ padding: '14px 20px' }}>
+                      <button onClick={() => blockMutation.mutate({ id: d.id, blocked: !d.erpAccessBlocked })} title={d.erpAccessBlocked ? 'Unblock ERP' : 'Block ERP'}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 600,
+                          padding: '5px 10px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.15s', border: 'none',
+                          ...(d.erpAccessBlocked
+                            ? { color: '#dc2626', background: '#fef2f2' }
+                            : { color: '#059669', background: '#f0fdf4' }),
+                        }}>
+                        {d.erpAccessBlocked ? <Lock style={{ width: '12px', height: '12px' }} /> : <Unlock style={{ width: '12px', height: '12px' }} />}
                         {d.erpAccessBlocked ? 'Blocked' : 'Allowed'}
                       </button>
                     </td>
-                    <td className="px-4 py-3.5 text-xs" style={{ color: 'var(--color-muted)' }}>
-                      {formatDistanceToNow(d.lastSeen)}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Link to={`/devices/${d.id}`}
-                            className="flex items-center gap-1 text-xs transition-colors hover:text-white"
-                            style={{ color: 'var(--color-accent)' }}>
-                        Detail <ChevronRight className="w-3.5 h-3.5" />
+                    <td style={{ padding: '14px 20px', fontSize: '12px', color: '#94a3b8' }}>{formatDistanceToNow(d.lastSeen)}</td>
+                    <td style={{ padding: '14px 20px' }}>
+                      <Link to={`/devices/${d.id}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>
+                        Detail <ChevronRight style={{ width: '14px', height: '14px' }} />
                       </Link>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-sm" style={{ color: 'var(--color-muted)' }}>
-                    No devices found
-                  </td></tr>
+                  <tr><td colSpan={8} style={{ padding: '50px 20px', textAlign: 'center', fontSize: '14px', color: '#94a3b8' }}>No devices found</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         )}
 
-        {/* Pagination */}
         {data && data.total > 20 && (
-          <div className="flex items-center justify-between px-5 py-3.5 border-t"
-               style={{ borderColor: 'var(--color-border)' }}>
-            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-              {page * 20 + 1}–{Math.min((page + 1) * 20, data.total)} of {data.total}
-            </span>
-            <div className="flex gap-2">
-              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                      className="px-3 py-1 rounded text-xs disabled:opacity-30 transition-all hover:bg-white/5"
-                      style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>← Prev</button>
-              <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * 20 >= data.total}
-                      className="px-3 py-1 rounded text-xs disabled:opacity-30 transition-all hover:bg-white/5"
-                      style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>Next →</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 22px', borderTop: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>{page * 20 + 1}–{Math.min((page + 1) * 20, data.total)} of {data.total}</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="btn-secondary" style={{ opacity: page === 0 ? 0.4 : 1 }}>← Prev</button>
+              <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * 20 >= data.total} className="btn-secondary" style={{ opacity: (page + 1) * 20 >= data.total ? 0.4 : 1 }}>Next →</button>
             </div>
           </div>
         )}

@@ -1,18 +1,28 @@
 export function ScoreBadge({ score }: { score: number }) {
-  const color =
-    score >= 70 ? 'text-green-400 border-green-500/40 bg-green-500/10' :
-    score >= 40 ? 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10' :
-                  'text-red-400 border-red-500/40 bg-red-500/10 animate-pulse-glow';
+  const isGood = score >= 70;
+  const isWarn = score >= 40 && score < 70;
+  const color = isGood ? '#059669' : isWarn ? '#d97706' : '#dc2626';
+  const bg = isGood ? '#f0fdf4' : isWarn ? '#fffbeb' : '#fef2f2';
+  const border = isGood ? '#bbf7d0' : isWarn ? '#fde68a' : '#fecaca';
+  const dotColor = isGood ? '#22c55e' : isWarn ? '#f59e0b' : '#ef4444';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 font-mono text-xs font-semibold px-2.5 py-1 rounded border ${color}`}>
-      <span className="relative flex h-1.5 w-1.5">
-        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${
-          score >= 70 ? 'bg-green-400' : score >= 40 ? 'bg-yellow-400' : 'bg-red-400'
-        }`} />
-        <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
-          score >= 70 ? 'bg-green-400' : score >= 40 ? 'bg-yellow-400' : 'bg-red-400'
-        }`} />
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700,
+      padding: '4px 12px', borderRadius: '8px',
+      background: bg, color, border: `1px solid ${border}`,
+    }}>
+      <span style={{ position: 'relative', display: 'flex', width: '6px', height: '6px' }}>
+        <span style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          background: dotColor, opacity: 0.4,
+          animation: 'pulse-glow 2s ease-in-out infinite',
+        }} />
+        <span style={{
+          position: 'relative', width: '6px', height: '6px',
+          borderRadius: '50%', background: dotColor,
+        }} />
       </span>
       {score}
     </span>

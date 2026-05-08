@@ -36,9 +36,9 @@ function AppLayout() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
       <Sidebar />
-      <main className="flex-1 ml-56 p-7 overflow-auto">
+      <main style={{ flex: 1, marginLeft: '240px', padding: '28px 32px', overflowX: 'hidden' }}>
         <Outlet />
       </main>
     </div>

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Cpu, Bell, Activity, BarChart2,
-  Shield, Settings, LogOut, Wifi
+  Settings, LogOut, Wifi, ShieldCheck
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useAlertStore } from '../store/alertStore';
@@ -28,40 +28,63 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-56 flex flex-col z-30"
-           style={{ background: 'var(--color-surface)', borderRight: '1px solid var(--color-border)' }}>
-      {/* Logo */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-               style={{ background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)' }}>
-            <Shield className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
+    <aside style={{
+      position: 'fixed', left: 0, top: 0, height: '100vh', width: '240px',
+      display: 'flex', flexDirection: 'column', zIndex: 30,
+      background: '#ffffff',
+      borderRight: '1px solid #e2e8f0',
+    }}>
+      {/* Brand */}
+      <div style={{ padding: '24px 20px 18px', borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
+          }}>
+            <ShieldCheck style={{ width: '18px', height: '18px', color: '#fff' }} />
           </div>
           <div>
-            <div className="text-sm font-bold tracking-widest uppercase" style={{ color: 'var(--color-accent)' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em' }}>
               Aegis
             </div>
-            <div className="font-mono text-[9px] tracking-wider" style={{ color: 'var(--color-muted)' }}>
-              HIDS · Admin
+            <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+              HIDS ADMIN
             </div>
           </div>
         </div>
 
-        {/* WS Status */}
-        <div className="flex items-center gap-1.5 mt-3">
-          <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-slate-600'}`} />
-          <Wifi className="w-3 h-3" style={{ color: connected ? '#a6e3a1' : 'var(--color-muted)' }} />
-          <span className="font-mono text-[9px]" style={{ color: connected ? '#a6e3a1' : 'var(--color-muted)' }}>
-            {connected ? 'LIVE' : 'OFFLINE'}
+        {/* Status pill */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          marginTop: '14px', padding: '6px 10px', borderRadius: '8px',
+          background: connected ? '#f0fdf4' : '#f8fafc',
+          border: `1px solid ${connected ? '#bbf7d0' : '#e2e8f0'}`,
+        }}>
+          <div style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            background: connected ? '#22c55e' : '#cbd5e1',
+            boxShadow: connected ? '0 0 6px rgba(34,197,94,0.4)' : 'none',
+          }} />
+          <Wifi style={{ width: '12px', height: '12px', color: connected ? '#16a34a' : '#94a3b8' }} />
+          <span style={{
+            fontSize: '10px', fontWeight: 600,
+            fontFamily: 'var(--font-mono)',
+            color: connected ? '#16a34a' : '#94a3b8',
+          }}>
+            {connected ? 'CONNECTED' : 'OFFLINE'}
           </span>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 py-3 overflow-y-auto">
-        <div className="px-3 mb-2">
-          <span className="font-mono text-[9px] tracking-widest uppercase px-2"
-                style={{ color: 'var(--color-muted)' }}>Navigation</span>
+      {/* Navigation */}
+      <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
+        <div style={{ padding: '0 20px', marginBottom: '8px' }}>
+          <span style={{
+            fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em',
+            textTransform: 'uppercase', color: '#94a3b8',
+          }}>Menu</span>
         </div>
         {nav.map(({ to, icon: Icon, label }) => (
           <NavLink
@@ -69,21 +92,37 @@ export function Sidebar() {
             to={to}
             end={to === '/'}
             onClick={() => { if (label === 'Alerts') markAllRead(); }}
-            className={({ isActive }) =>
-              `flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-all duration-150 group ${
-                isActive
-                  ? 'text-white'
-                  : 'hover:bg-white/5'
-              }`
-            }
-            style={({ isActive }) => isActive
-              ? { background: 'rgba(0,212,255,0.10)', color: 'var(--color-accent)', borderLeft: '2px solid var(--color-accent)' }
-              : { color: 'var(--color-dim)' }}
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: '12px',
+              margin: '2px 10px', padding: '10px 14px', borderRadius: '10px',
+              fontSize: '14px', textDecoration: 'none',
+              fontWeight: isActive ? 600 : 500,
+              color: isActive ? '#4f46e5' : '#475569',
+              background: isActive ? '#eef2ff' : 'transparent',
+              transition: 'all 0.15s ease',
+            })}
+            onMouseEnter={e => {
+              const el = e.currentTarget;
+              if (!el.classList.contains('active')) {
+                el.style.background = '#f8fafc';
+              }
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget;
+              if (!el.classList.contains('active')) {
+                el.style.background = 'transparent';
+              }
+            }}
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1">{label}</span>
+            <Icon style={{ width: '18px', height: '18px', flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>{label}</span>
             {label === 'Alerts' && unreadCount > 0 && (
-              <span className="text-[10px] font-mono font-bold bg-red-500 text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+              <span style={{
+                fontSize: '10px', fontWeight: 700, fontFamily: 'var(--font-mono)',
+                background: '#ef4444', color: '#fff',
+                borderRadius: '999px', padding: '2px 7px', minWidth: '20px', textAlign: 'center',
+                boxShadow: '0 1px 4px rgba(239,68,68,0.3)',
+              }}>
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -91,24 +130,44 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* User */}
-      <div className="px-4 py-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold"
-               style={{ background: 'rgba(0,212,255,0.15)', color: 'var(--color-accent)' }}>
+      {/* User section */}
+      <div style={{ padding: '16px', borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+          <div style={{
+            width: '34px', height: '34px', borderRadius: '10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+            color: '#4f46e5', background: '#eef2ff',
+          }}>
             {username?.charAt(0).toUpperCase() ?? 'A'}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-white truncate">{username ?? 'Admin'}</div>
-            <div className="font-mono text-[9px]" style={{ color: 'var(--color-muted)' }}>ADMINISTRATOR</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: '13px', fontWeight: 600, color: '#0f172a',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{username ?? 'Admin'}</div>
+            <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>Administrator</div>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs transition-all hover:bg-red-500/10 hover:text-red-400 group"
-          style={{ color: 'var(--color-muted)' }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            width: '100%', padding: '8px 12px', borderRadius: '8px',
+            fontSize: '13px', fontWeight: 500, color: '#64748b',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = '#fef2f2';
+            e.currentTarget.style.color = '#dc2626';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#64748b';
+          }}
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut style={{ width: '16px', height: '16px' }} />
           Sign Out
         </button>
       </div>

@@ -4,45 +4,36 @@ import { adminApi } from '../api/adminApi';
 import { PageLoader } from '../components/LoadingSpinner';
 import { formatDateTime } from '../utils/format';
 
-const threatColors: Record<string, string> = {
-  EVIL_TWIN: 'text-red-400 bg-red-500/10 border-red-500/30',
-  APK_UNKNOWN_SOURCE: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
-  OTP_READER_APP: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
-  ERP_BRUTEFORCE: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
-  FIM_CHANGE: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
-  PROCESS_ANOMALY: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
-  PORT_SCAN: 'text-green-400 bg-green-500/10 border-green-500/30',
-  MALICIOUS_IP: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+const threatMap: Record<string, { bg: string; color: string; border: string }> = {
+  EVIL_TWIN: { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' },
+  APK_UNKNOWN_SOURCE: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+  OTP_READER_APP: { bg: '#faf5ff', color: '#6d28d9', border: '#e9d5ff' },
+  ERP_BRUTEFORCE: { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  FIM_CHANGE: { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  PROCESS_ANOMALY: { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
+  PORT_SCAN: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  MALICIOUS_IP: { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
 };
+const defaultThreat = { bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
+const card = { background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02)' };
 
 export function PatientZeroPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['patient-zero'],
-    queryFn: () => adminApi.getPatientZero().then(r => r.data),
-    refetchInterval: 60_000,
-  });
-
+  const { data, isLoading } = useQuery({ queryKey: ['patient-zero'], queryFn: () => adminApi.getPatientZero().then(r => r.data), refetchInterval: 60_000 });
   if (isLoading) return <PageLoader />;
-
   const clusters = data?.clusters ?? [];
 
   return (
-    <div className="space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <Activity className="w-5 h-5" style={{ color: 'var(--color-accent)' }} />
-          Patient Zero Tracker
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '-0.02em' }}>
+          <Activity style={{ width: '22px', height: '22px', color: '#4f46e5' }} /> Patient Zero Tracker
         </h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          Threat origin correlation across campus devices
-        </p>
+        <p style={{ fontSize: '14px', color: '#64748b', marginTop: '2px' }}>Threat origin correlation across campus devices</p>
       </div>
 
-      {/* Explainer */}
-      <div className="rounded-xl border p-4 flex items-start gap-3"
-           style={{ background: 'var(--color-surface)', borderColor: 'rgba(0,212,255,0.2)' }}>
-        <GitBranch className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--color-accent)' }} />
-        <p className="text-sm" style={{ color: 'var(--color-dim)' }}>
+      <div style={{ ...card, padding: '18px 20px', display: 'flex', alignItems: 'flex-start', gap: '12px', background: '#eef2ff', borderColor: '#c7d2fe' }}>
+        <GitBranch style={{ width: '18px', height: '18px', color: '#4f46e5', marginTop: '2px', flexShrink: 0 }} />
+        <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#3730a3' }}>
           When ≥3 devices report the same threat type within a 2-hour window, Aegis identifies the 
           first infected device (Patient Zero) and tracks lateral spread. Use this view to contain 
           outbreaks and quarantine source devices first.
@@ -50,106 +41,69 @@ export function PatientZeroPage() {
       </div>
 
       {clusters.length === 0 ? (
-        <div className="rounded-xl border p-12 text-center"
-             style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-               style={{ background: 'rgba(166,227,161,0.1)', border: '1px solid rgba(166,227,161,0.2)' }}>
-            <Activity className="w-7 h-7 text-green-400" />
+        <div style={{ ...card, padding: '60px 24px', textAlign: 'center' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+            <Activity style={{ width: '28px', height: '28px', color: '#22c55e' }} />
           </div>
-          <h3 className="text-base font-semibold text-white mb-1">No Active Clusters</h3>
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            No multi-device threat spread detected. Campus is secure.
-          </p>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>No Active Clusters</h3>
+          <p style={{ fontSize: '14px', color: '#94a3b8' }}>No multi-device threat spread detected. Campus is secure.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {clusters.map((cluster, i) => (
-            <div key={i} className="rounded-xl border overflow-hidden"
-                 style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-              {/* Cluster Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b"
-                   style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface2)' }}>
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-4 h-4 text-orange-400" />
-                  <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full border ${
-                    threatColors[cluster.threatPattern] ?? 'text-slate-400 bg-slate-500/10 border-slate-500/30'
-                  }`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {clusters.map((cluster, i) => {
+            const tc = threatMap[cluster.threatPattern] ?? defaultThreat;
+            return (
+            <div key={i} style={{ ...card, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <AlertTriangle style={{ width: '16px', height: '16px', color: '#ea580c' }} />
+                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', background: tc.bg, color: tc.color, border: `1px solid ${tc.border}` }}>
                     {cluster.threatPattern.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="font-mono font-bold text-orange-400">{cluster.affectedCount}</span>
-                    <span>affected</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
+                    <Users style={{ width: '14px', height: '14px' }} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#ea580c' }}>{cluster.affectedCount}</span> affected
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatDateTime(cluster.firstSeen)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94a3b8' }}>
+                    <Clock style={{ width: '14px', height: '14px' }} />{formatDateTime(cluster.firstSeen)}
                   </div>
                 </div>
               </div>
 
-              {/* Patient Zero Device */}
               {cluster.patientZeroDevice && (
-                <div className="px-5 py-4">
-                  <div className="text-[10px] font-mono tracking-wider uppercase mb-3"
-                       style={{ color: 'var(--color-muted)' }}>Patient Zero</div>
-                  <div className="flex items-center gap-3 p-3.5 rounded-lg border"
-                       style={{ background: 'rgba(249,114,135,0.05)', borderColor: 'rgba(249,114,135,0.2)' }}>
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold"
-                         style={{ background: 'rgba(249,114,135,0.15)', color: '#f38ba8' }}>
-                      0
+                <div style={{ padding: '20px 22px' }}>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '12px' }}>Patient Zero</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '14px', background: '#fef2f2', border: '1px solid #fecaca' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#dc2626', background: '#fee2e2' }}>0</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{cluster.patientZeroDevice.deviceModel ?? cluster.patientZeroDevice.prn}</div>
+                      <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#94a3b8', marginTop: '2px' }}>PRN: {cluster.patientZeroDevice.prn} · {cluster.patientZeroDevice.department}</div>
                     </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-white">
-                        {cluster.patientZeroDevice.deviceModel ?? cluster.patientZeroDevice.prn}
-                      </div>
-                      <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                        PRN: {cluster.patientZeroDevice.prn} · {cluster.patientZeroDevice.department}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-xs font-mono px-2 py-0.5 rounded-full border mb-1 ${
-                        cluster.patientZeroDevice.riskLevel === 'COMPROMISED'
-                          ? 'text-red-400 bg-red-500/10 border-red-500/30'
-                          : 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
-                      }`}>
-                        {cluster.patientZeroDevice.riskLevel}
-                      </div>
-                      <div className="font-mono text-xs font-bold" style={{ color: 'var(--color-accent)' }}>
-                        Score: {cluster.patientZeroDevice.currentScore}
-                      </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', marginBottom: '4px', border: '1px solid',
+                        ...(cluster.patientZeroDevice.riskLevel === 'COMPROMISED' ? { color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' } : { color: '#d97706', background: '#fffbeb', borderColor: '#fde68a' })
+                      }}>{cluster.patientZeroDevice.riskLevel}</div>
+                      <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#4f46e5' }}>Score: {cluster.patientZeroDevice.currentScore}</div>
                     </div>
                   </div>
 
-                  {/* Spread visualization */}
-                  <div className="mt-4">
-                    <div className="text-[10px] font-mono tracking-wider uppercase mb-2"
-                         style={{ color: 'var(--color-muted)' }}>Spread Timeline</div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold font-mono"
-                           style={{ background: 'rgba(249,114,135,0.15)', color: '#f38ba8', border: '1px solid rgba(249,114,135,0.4)' }}>
-                        P0
-                      </div>
-                      <div className="flex-1 h-0.5 rounded" style={{ background: 'linear-gradient(to right, #f38ba8, #fab387)' }} />
+                  <div style={{ marginTop: '18px' }}>
+                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '10px' }}>Spread Timeline</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#dc2626', background: '#fee2e2', border: '2px solid #fecaca' }}>P0</div>
+                      <div style={{ flex: 1, height: '3px', borderRadius: '999px', background: 'linear-gradient(90deg, #ef4444, #f97316)' }} />
                       {Array.from({ length: Math.min(cluster.affectedCount - 1, 8) }).map((_, j) => (
-                        <div key={j} className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-mono font-bold"
-                             style={{ background: `rgba(250,179,135,${0.3 - j * 0.03})`, color: '#fab387', border: '1px solid rgba(250,179,135,0.3)' }}>
-                          {j + 1}
-                        </div>
+                        <div key={j} style={{ width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa' }}>{j+1}</div>
                       ))}
-                      {cluster.affectedCount > 9 && (
-                        <span className="text-[10px] font-mono" style={{ color: 'var(--color-muted)' }}>
-                          +{cluster.affectedCount - 9} more
-                        </span>
-                      )}
+                      {cluster.affectedCount > 9 && <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94a3b8' }}>+{cluster.affectedCount-9} more</span>}
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          ))}
+          );})}
         </div>
       )}
     </div>
