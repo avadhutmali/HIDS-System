@@ -39,11 +39,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-<<<<<<< HEAD
             buildConfigField("String", "SERVER_BASE_URL", "\"http://13.203.207.207:8081/\"")
-=======
-            buildConfigField("String", "SERVER_BASE_URL", "\"$releaseServerUrl\"")
->>>>>>> e4d9f7f39464b65a4582308713b2b1e368e12061
         }
     }
 
