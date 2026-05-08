@@ -34,7 +34,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "SERVER_BASE_URL", "\"https://aegis.wce.ac.in/\"")
+            buildConfigField("String", "SERVER_BASE_URL", "\"http://13.203.207.207:8081/\"")
         }
     }
 

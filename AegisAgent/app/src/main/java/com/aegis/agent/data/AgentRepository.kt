@@ -62,7 +62,9 @@ class AgentRepository(context: Context) {
             val jwt = tokenStore.getJwtToken() ?: error("Device is not enrolled")
             val initial = call("Bearer $jwt")
 
-            if (initial.code() != 401) {
+            // Retry on 401 (Unauthorized) OR 403 (Forbidden — Spring Security returns this
+            // when an expired JWT silently fails validation and request proceeds as anonymous)
+            if (initial.code() != 401 && initial.code() != 403) {
                 return@runCatching initial.bodyOrThrow(failureMessage)
             }
 
