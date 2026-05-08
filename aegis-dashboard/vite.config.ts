@@ -14,6 +14,7 @@ export default defineConfig({
     global: 'globalThis',
   },
   server: {
+    host: true,          // bind to 0.0.0.0 so phone can connect
     port: 5173,
     proxy: {
       '/api': 'http://localhost:8081',

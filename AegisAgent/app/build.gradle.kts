@@ -4,6 +4,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// This is the modern Kotlin 2.x way to set JVM target for BOTH Java and Kotlin consistently.
+// It replaces kotlinOptions { jvmTarget } and compileOptions { sourceCompatibility }.
+kotlin {
+    jvmToolchain(17)
+}
+
 android {
     namespace = "com.aegis.agent"
     compileSdk = 35
@@ -20,7 +26,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "SERVER_BASE_URL", "\"http://10.40.7.242:8080/\"")
+            buildConfigField("String", "SERVER_BASE_URL", "\"http://10.150.203.177:8081/\"")
         }
         release {
             isMinifyEnabled = false
@@ -31,10 +37,7 @@ android {
             buildConfigField("String", "SERVER_BASE_URL", "\"https://aegis.wce.ac.in/\"")
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+
     buildFeatures {
         compose = true
         buildConfig = true

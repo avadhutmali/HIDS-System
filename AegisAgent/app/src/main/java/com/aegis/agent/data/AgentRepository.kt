@@ -83,7 +83,7 @@ class AgentRepository(context: Context) {
 
     private fun <T> Response<T>.bodyOrThrow(message: String): T {
         if (!isSuccessful || body() == null) {
-            error("$message (HTTP $code())")
+            error("$message (HTTP ${code()})")
         }
         return body()!!
     }

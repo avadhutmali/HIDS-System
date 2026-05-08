@@ -36,10 +36,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/api/v1/agent/register").permitAll()
-                .requestMatchers("/api/v1/agent/token/refresh").permitAll()
-                .requestMatchers("/api/v1/admin/auth/login").permitAll()
+                // Always allow CORS preflight (OPTIONS) requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Public endpoints — must be listed BEFORE the admin/** wildcard
+                .requestMatchers(HttpMethod.POST, "/api/v1/agent/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/agent/token/refresh").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/admin/auth/login").permitAll()
                 // WebSocket
                 .requestMatchers("/ws/**").permitAll()
                 // Agent endpoints

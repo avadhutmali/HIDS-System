@@ -30,11 +30,11 @@ public class SecurityEvent {
     private Device device;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_type", nullable = false, columnDefinition = "event_type")
+    @Column(name = "event_type", nullable = false)
     private EventType eventType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "severity")
+    @Column(nullable = false)
     private Severity severity;
 
     @JdbcTypeCode(SqlTypes.JSON)

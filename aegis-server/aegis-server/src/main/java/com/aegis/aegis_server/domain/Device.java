@@ -22,7 +22,7 @@ public class Device {
     private String prn;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "device_type", nullable = false, columnDefinition = "device_type")
+    @Column(name = "device_type", nullable = false)
     private DeviceType deviceType;
 
     @Column(name = "device_model", length = 100)
@@ -33,7 +33,7 @@ public class Device {
     private Integer currentScore = 100;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "risk_level", nullable = false, columnDefinition = "risk_level")
+    @Column(name = "risk_level", nullable = false)
     @Builder.Default
     private RiskLevel riskLevel = RiskLevel.CLEAN;
 
