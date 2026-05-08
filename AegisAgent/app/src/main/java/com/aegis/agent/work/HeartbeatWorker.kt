@@ -6,6 +6,7 @@ import androidx.work.WorkerParameters
 import com.aegis.agent.data.AgentRepository
 import com.aegis.agent.data.model.HeartbeatRequest
 import com.aegis.agent.security.ScoreEngine
+import com.aegis.agent.security.WifiTrustMonitor
 
 class HeartbeatWorker(
     appContext: Context,
@@ -19,6 +20,12 @@ class HeartbeatWorker(
         if (!tokenStore.isEnrolled()) {
             return Result.success()
         }
+
+        val policy = tokenStore.getPolicy()
+        WifiTrustMonitor.checkAndNotify(
+            applicationContext,
+            policy?.knownBssids?.toSet().orEmpty()
+        )
 
         val scoreEngine = ScoreEngine(applicationContext)
         val scoreResult = scoreEngine.compute()
