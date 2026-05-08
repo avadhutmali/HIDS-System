@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +32,7 @@ import com.aegis.agent.data.model.AgentRegistrationRequest
 import com.aegis.agent.data.model.HeartbeatRequest
 import com.aegis.agent.data.model.ThreatReportRequest
 import com.aegis.agent.data.model.nowIsoString
+import com.aegis.agent.data.storage.PrivacyPrefs
 import com.aegis.agent.security.ScoreEngine
 import com.aegis.agent.ui.theme.AegisAgentTheme
 import com.aegis.agent.work.AgentWorkScheduler
@@ -58,14 +61,30 @@ class MainActivity : ComponentActivity() {
 fun AgentScreen(modifier: Modifier = Modifier, repository: AgentRepository) {
     val context = LocalContext.current
     val tokenStore = repository.getTokenStore()
+    val privacyPrefs = remember { PrivacyPrefs(context) }
     var enrolled by remember { mutableStateOf(tokenStore.isEnrolled()) }
     var status by remember { mutableStateOf("Ready") }
     val scope = rememberCoroutineScope()
+    var showPrivacy by rememberSaveable { mutableStateOf(false) }
 
     var prn by rememberSaveable { mutableStateOf("") }
     var deviceModel by rememberSaveable { mutableStateOf(android.os.Build.MODEL ?: "ANDROID") }
     var department by rememberSaveable { mutableStateOf("CSE") }
-    var consentAccepted by rememberSaveable { mutableStateOf(false) }
+    var consentAccepted by rememberSaveable { mutableStateOf(privacyPrefs.isConsentAccepted()) }
+
+    if (showPrivacy) {
+        PrivacyScreen(
+            modifier = modifier,
+            consentAccepted = consentAccepted,
+            onConsentChange = { accepted ->
+                consentAccepted = accepted
+                privacyPrefs.setConsentAccepted(accepted)
+            },
+            onBack = { showPrivacy = false }
+        )
+        return
+    }
+
 
     Column(
         modifier = modifier
@@ -75,6 +94,10 @@ fun AgentScreen(modifier: Modifier = Modifier, repository: AgentRepository) {
     ) {
         Text(text = "Aegis Android Agent")
         Text(text = "Server: ${BuildConfig.SERVER_BASE_URL}")
+
+        Button(onClick = { showPrivacy = true }) {
+            Text("Consent & Privacy")
+        }
 
         if (!enrolled) {
             OutlinedTextField(
@@ -98,7 +121,10 @@ fun AgentScreen(modifier: Modifier = Modifier, repository: AgentRepository) {
             RowWithCheckbox(
                 checked = consentAccepted,
                 label = "Consent accepted",
-                onCheckedChange = { consentAccepted = it }
+                onCheckedChange = {
+                    consentAccepted = it
+                    privacyPrefs.setConsentAccepted(it)
+                }
             )
 
             Button(
@@ -179,6 +205,24 @@ fun AgentScreen(modifier: Modifier = Modifier, repository: AgentRepository) {
             }) {
                 Text("Send Test Threat")
             }
+
+            Button(onClick = {
+                scope.launch {
+                    val policy = tokenStore.getPolicy()
+                    val minScore = policy?.erpMinScore ?: 60
+                    val score = ScoreEngine(context).compute().score
+
+                    status = if (policy?.erpAccessBlocked == true) {
+                        "Access blocked by policy"
+                    } else if (score < minScore) {
+                        "Access blocked: score $score < $minScore"
+                    } else {
+                        "Access allowed"
+                    }
+                }
+            }) {
+                Text("Check Access")
+            }
         }
 
         Text(text = "Status: $status")
@@ -198,5 +242,42 @@ private fun RowWithCheckbox(checked: Boolean, label: String, onCheckedChange: (B
     androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(text = label)
+    }
+}
+
+@Composable
+private fun PrivacyScreen(
+    modifier: Modifier,
+    consentAccepted: Boolean,
+    onConsentChange: (Boolean) -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(text = "Consent & Privacy")
+        Text(text = "DPDP Act 2023 Summary")
+        Text(text = "We collect only security metadata:")
+        Text(text = "- Device UUID (pseudonymous)")
+        Text(text = "- Security score + breakdown")
+        Text(text = "- Wi-Fi BSSID (AP identifier)")
+        Text(text = "- Network endpoints (IP/port, not payload)")
+        Text(text = "- File integrity events (path + hash)")
+        Text(text = "- Process names and PIDs")
+        Text(text = "We never collect personal content, SMS, photos, or browsing history.")
+
+        RowWithCheckbox(
+            checked = consentAccepted,
+            label = "I accept the privacy terms",
+            onCheckedChange = onConsentChange
+        )
+
+        Button(onClick = onBack) {
+            Text("Back")
+        }
     }
 }

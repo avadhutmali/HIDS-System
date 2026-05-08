@@ -17,8 +17,8 @@ export default defineConfig({
     host: true,          // bind to 0.0.0.0 so phone can connect
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8081',
-      '/ws': { target: 'http://localhost:8081', ws: true },
+      '/api': 'https://13.203.207.207/:8081',
+      '/ws': { target: 'https://13.203.207.207/:8081', ws: true },
     }
   }
 })

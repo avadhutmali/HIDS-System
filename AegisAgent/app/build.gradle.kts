@@ -11,6 +11,11 @@ kotlin {
 }
 
 android {
+    val debugServerUrl = (project.findProperty("aegis.server.baseUrlDebug") as String?)
+        ?: "http://10.150.203.177:8081/"
+    val releaseServerUrl = (project.findProperty("aegis.server.baseUrlRelease") as String?)
+        ?: "https://aegis.wce.ac.in/"
+
     namespace = "com.aegis.agent"
     compileSdk = 35
 
@@ -26,7 +31,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "SERVER_BASE_URL", "\"http://10.150.203.177:8081/\"")
+            buildConfigField("String", "SERVER_BASE_URL", "\"$debugServerUrl\"")
         }
         release {
             isMinifyEnabled = false
@@ -34,7 +39,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "SERVER_BASE_URL", "\"https://aegis.wce.ac.in/\"")
+            buildConfigField("String", "SERVER_BASE_URL", "\"$releaseServerUrl\"")
         }
     }
 
